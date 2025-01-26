@@ -1,0 +1,26 @@
+FROM python:3.12.1
+
+WORKDIR /usr/src/app
+
+#- ./api:/usr/src/app
+COPY ./api .
+
+# - ./db:/usr/src/app/db
+COPY ./db ./db/
+
+# - ./joy:/usr/src/app/joy
+COPY ./joy ./joy/
+
+# - ./models:/usr/src/app/models
+COPY ./models ./models/
+
+# - ./clients:/usr/src/app/clients
+COPY ./clients ./clients/
+
+# - ./draft_files:/usr/src/app/draft_files
+COPY ./draft_files ./draft_files/
+
+RUN python -m venv env
+RUN pip install --no-cache-dir -r requirements.txt
+
+CMD [ "python", "main.py" ]

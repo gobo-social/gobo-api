@@ -1,7 +1,8 @@
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-engine = create_engine("postgresql://GOBO:password@db:5432/GOBO")
+engine = create_engine(os.environ.get("DB_URL"))
 Session = sessionmaker(bind=engine)
 
 from sqlalchemy.orm import DeclarativeBase
