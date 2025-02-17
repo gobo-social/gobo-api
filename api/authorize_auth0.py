@@ -1,3 +1,8 @@
+"""
+NOTE: This is the legacy Auth0 integration. I'm keeping it around for reference,
+but for the foreseeable future, we're relying on Outseta as our identity authority.
+"""
+
 import logging
 import os
 import time
@@ -8,9 +13,8 @@ import http_errors
 import models
 
 # TODO: Configuration
-OUTSETA_DOMAIN = os.environ.get("OUTSETA_DOMAIN")
-API_AUDIENCE = "gobo.outseta.com"
-TOKEN_ISSUER = "https://gobo.outseta.com" 
+AUTH0_DOMAIN = os.environ.get("AUTH0_DOMAIN")
+API_AUDIENCE = "https://gobo.social/api"
 ALGORITHMS = ["RS256"]
 JWKS_TIMEOUT = 3600
 
@@ -30,7 +34,7 @@ def parse_authorization():
 
 def refresh_keyset():
     with httpx.Client() as client:
-        r = client.get(f"https://{OUTSETA_DOMAIN}/.well-known/jwks")
+        r = client.get(f"https://{AUTH0_DOMAIN}/.well-known/jwks.json")
         value = r.json()
 
         cache["jwks"] = {
@@ -72,7 +76,7 @@ def validate_token(token):
                 rsa_key,
                 algorithms=ALGORITHMS,
                 audience=API_AUDIENCE,
-                issuer=TOKEN_ISSUER
+                issuer="https://auth.gobo.social/"
             )
         except jwt.ExpiredSignatureError:
             raise http_errors.unauthorized("token is expired")
@@ -86,68 +90,41 @@ def validate_token(token):
     raise http_errors.unauthorized("Unable to find appropriate key")
 
 
-"""
-We're using Outseta as our identity authority. Because their overall goal is
-to simplify authority integration with a product, they tend toward implicit
-or prescriptive configurations to reduce the surface area they expose to
-customers.
 
-So instead of explicit role manament, they provide subscription, plan,
-and add-on information that a person / person's group has purchased. 
-In Gobo, we map this information into roles for access control.
+# This looks up the permissions as maintained by Auth0.
+#
+# - We need this to verify that a persona has admin access.
+# - During the private beta, we also used the permission "general" to provide
+#   general per-account level access to regular personas.
+#
+# As we move into public beta / general access, we're transitioning what
+# that "general" permission is.
+#
+# We're going to look for email verification, which is still a claim signed
+# by the authority. Then, we'll add "general" as a virtual permission.
+#
+# Benefits Of This Approach:
+# - This avoids disrupting the authorization flow outside of this function.
+# - Pre-existing accounts are gracefully handled.
+# - It's semantically consistent with the how the permission "general" is changing.
+# - If we wanted the permission to be available for federation, we're not painted
+#   into a corner; it's still based on a signed claim. So we have all our
+#   options available to us in the future.
 
-We handle that mapping all upfront once we get the raw Outseta data.
-I've created the Permission class to serve as a RBAC oracle. Any question we
-need answered in the application, like limits on persona count,
-or a lockout of some feature, needs to evaluted here and the class can
-provide answers to those questions.
-"""
-
-ADMIN_PLANS = [
-    "496Gr7WX"
-]
-
-GENERAL_PLANS = [
-    "BWz5El9E"
-]
-
-
-class Permission():
-    def __init__(self, data):
-        self.plan = data["plan"]
-        self.addons = data["addons"]
-        self.roles = set()
-
-    # TODO: This will get more sophsiticated in the future.
-    def evaluate_mapping(self):
-        if self.plan in ADMIN_PLANS:
-            self.roles.add('admin')
-        if self.plan in GENERAL_PLANS:
-            self.roles.add('general')
-
-    @staticmethod
-    def make(data):
-        if data is None:
-            raise Exception("raw dictionary passed to Permission constructor is None")
-        if data.get('plan') is None:
-            raise Exception("plan passed to Permission constructor is None")
-        
-        self = Permission(data)
-        self.evaluate_mapping()
-        return self
-
-
-
-def get_permission(token):
+def get_permissions(token):
     claims = validate_token(token)
-    logging.info(claims)
     g.claims = claims
 
-    # Maps subscription information into role-based access control.
-    return Permission.make({
-        "plan": claims.get("outseta:planUid", ""),
-        "addons": claims.get("outseta:addOnUids", [])
-    })
+    # Gets the formal permissions from the signed claim.
+    permissions = set(claims.get("permissions", []))
+
+    # # We honor accounts with verified email addresses as having general access.
+    # is_verified = claims.get("https://gobo.social/verified", False)
+    # if is_verified == True:
+    #     permissions.add("general")
+    
+    return permissions
+
 
 
 def lookup_gobo_key(key): 
@@ -193,13 +170,13 @@ def authorize_request(configuration):
         
 
         elif parts[0] == "Bearer":
-            # Relies on integration with Outseta        
-            permission = get_permission(parts[1])
+            # Relies on integration with Auth0        
+            permissions = get_permissions(parts[1])
         
-            if "admin" in permission.roles:
+            if "admin" in permissions:
                 return
 
-            if "general" in permission.roles and "general" in schema:
+            if "general" in permissions and "general" in schema:
                 return
 
             if "person" in schema:
