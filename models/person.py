@@ -14,8 +14,8 @@ add, get, update, remove, query, find, pluck = itemgetter(
 )(define_crud(Person))
 
 # Because the person table records are implicity created via our connection
-# to Auth0, this special method will lookup a person based on that authority_id,
-# or create a new person on the spot.
+# to an authority provider, we've created this special method. It will lookup
+# a person based on that authority_id, or create a new person on the spot.
 def lookup(authority_id):
     with Session() as session:
         statement = select(Person)

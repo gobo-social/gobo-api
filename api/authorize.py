@@ -140,7 +140,6 @@ class Permission():
 
 def get_permission(token):
     claims = validate_token(token)
-    logging.info(claims)
     g.claims = claims
 
     # Maps subscription information into role-based access control.
