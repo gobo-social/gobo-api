@@ -9,13 +9,6 @@ import joy
 import models
 import clients.helpers as h 
 
-# TODO: Do we want this to be moved into GOBO configuration?
-redirect_uris = [
-    "http://localhost:5117/add-identity-callback",
-    "http://gobo.social/add-identity-callback",
-    "https://gobo.social/add-identity-callback"
-]
-
 smalltown_urls = [
     "https://community.publicinfrastructure.org"
 ]
@@ -222,7 +215,7 @@ class Mastodon():
         client_id, client_secret = mastodon.Mastodon.create_app(
             "gobo.social",
             scopes = ['read', 'write'],
-            redirect_uris = redirect_uris,
+            redirect_uris = environ.get("OAUTH_VALID_REDIRECTS").split(", "),
             website = "https://gobo.social",
             api_base_url = base_url
         )
