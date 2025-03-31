@@ -2,9 +2,6 @@ import logging
 import models
 from . import tasks
 
-where = models.helpers.where
-QueryIterator = models.helpers.QueryIterator
-
 
 def dispatch(task):
     if task.name == "fanout - update identity":

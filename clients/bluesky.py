@@ -148,6 +148,11 @@ def get_record_view(data):
     author = record.get("author", record.get("creator"))
     value = record.get("value")
 
+    # TODO: This is probably some other sort of entity that's not a post lodged
+    # in the feed, so it would be another edge case to handle that category of thing.
+    if value is None:
+        return None
+
     # TODO: This isn't a post. It looks like a list of sources, which we might
     #       want to represent with GOBO abstractions. Punt for now.
     if record["$type"] == "app.bsky.feed.defs#generatorView":
@@ -316,6 +321,7 @@ class Post():
         self.share = Post.create_regular(data)
         self.author = Actor(reason["by"])
         self.content = None
+        self.uri = None
         self.url = self.share.url
         self.published = reason.get("indexedAt", None)
 
@@ -389,6 +395,32 @@ class Post():
         text += original.decode()
         self.content = text
 
+    def to_dict(self):
+        share = None
+        if self.share:
+            share = self.share.to_dict()
+        reply = None
+        if self.reply:
+            reply = self.reply.to_dict()
+        thread = []
+        if self.thread:
+            thread = self.thread
+
+        return {
+            "id": self.id,
+            "uri": getattr(self, "uri", None),
+            "author": self.author.to_dict(),
+            "content": self.content,
+            "url": self.url,
+            "published": self.published,
+            "facets": getattr(self, "facets", None),
+            "attachments": getattr(self, "attachments", []),
+            "is_repost": getattr(self, "is_repost", None),
+            "share": share,
+            "reply": reply,
+            "poll": getattr(self, "poll", None),
+            "thread": thread,
+        }
 
     
 # Simplified post class to handle reply references for thread construction.
@@ -406,6 +438,12 @@ class Reply():
             "id": id,
             "uri": uri
         })
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "uri": self.uri,
+        }
 
 
 class Actor():
@@ -438,6 +476,15 @@ class Actor():
         handle = data["handle"]
         url = Actor.get_url(data)
         return f'<a href={url} target="_blank" rel="noopener noreferrer nofollow">@{handle}</a>'
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "url": self.url,
+            "username": self.username,
+            "name": self.name,
+            "icon_url": self.icon_url,
+        }
 
 
 
@@ -477,6 +524,23 @@ class Notification():
             return _["reasonSubject"]
         logging.warning(_)
         raise Exception(f"Bluesky: unable to map notification post")
+    
+    def to_dict(self):
+        author = None
+        if self.author:
+            author = self.author.to_dict()
+        post = None
+        if self.post:
+            post = post.to_dict()
+
+        return {
+            "id": self.id,
+            "type": self.type,
+            "created": self.created,
+            "active": self.active,
+            "author": author,
+            "post": post,
+        }
 
 
 
@@ -578,15 +642,17 @@ class Bluesky():
 
     def get_profile(self):
         return self.client.get_profile(self.me)
+    def get_profile_dict(self):
+        return Actor(self.get_profile()).to_dict()
 
     def map_profile(self, data):
         profile = data["profile"]
         identity = data["identity"]
 
-        identity["profile_url"] = f"{self.BASE_URL}/profile/{profile['handle']}"
-        identity["profile_image"] = profile.get("avatar", None)
-        identity["username"] = profile["handle"]
-        identity["name"] = profile.get("displayName", None)
+        identity["profile_url"] = f"{self.BASE_URL}/profile/{profile['username']}"
+        identity["profile_image"] = profile.get("icon_url", None)
+        identity["username"] = profile["username"]
+        identity["name"] = profile.get("name", None)
         return identity
     
     
@@ -851,13 +917,22 @@ class Bluesky():
             if actor.id not in seen_actors:
                 seen_actors.add(actor.id)
                 actors.append(actor)
-      
-        return {
+
+        results = {
             "posts": [],
-            "partials": partials,
-            "actors": actors,
-            "notifications": notifications
+            "partials": [],
+            "actors": [],
+            "notifications": [],
         }
+
+        for partial in partials:
+            results["partials"].append(partial.to_dict())
+        for actor in actors:
+            results["actors"].append(actor.to_dict())
+        for notification in notifications:
+            results["notifications"].append(notification.to_dict())
+      
+        return results
     
 
     # Bluesky _does_ support the concept of reading a notification, and it's
@@ -882,17 +957,17 @@ class Bluesky():
         for notification in data["notifications"]:
             source_id = None
             post_id = None
-            if notification.author is not None:
-                source_id = sources[notification.author.id]["id"]
-            if notification.post is not None:
-                post_id = posts[notification.post.id]["id"]
+            if notification.get("author") is not None:
+                source_id = sources[notification["author"]["id"]]["id"]
+            if notification.get("post") is not None:
+                post_id = posts[notification["post"]["id"]]["id"]
             notifications.append({
                 "platform": "bluesky",
-                "platform_id": notification.id,
+                "platform_id": notification.get("id"),
                 "base_url": self.BASE_URL,
-                "type": notification.type,
-                "notified": notification.created,
-                "active": notification.active,
+                "type": notification.get("type"),
+                "notified": notification.get("created"),
+                "active": notification.get("active"),
                 "source_id": source_id,
                 "post_id": post_id
             })
@@ -901,15 +976,13 @@ class Bluesky():
 
 
     def list_sources(self):
-        id = self.identity["platform_id"]
-
         actors = []
-        actors.append(Actor(self.get_profile()))
+        actors.append(self.get_profile_dict())
         cursor = None
         while True:
             result = self.client.get_follows(self.me, cursor)
             for item in result["follows"]:
-                actors.append(Actor(item))
+                actors.append(Actor(item).to_dict())
 
             cursor = result.get("cursor", None)
             if cursor is None:
@@ -923,12 +996,12 @@ class Bluesky():
         for actor in data["actors"]:
             sources.append({
                 "platform": "bluesky",
-                "platform_id": actor.id,
+                "platform_id": actor.get("id"),
                 "base_url": self.BASE_URL,
-                "url": actor.url,
-                "username": actor.username,
-                "name": actor.name,
-                "icon_url": actor.icon_url,
+                "url": actor.get("url"),
+                "username": actor.get("username"),
+                "name": actor.get("name"),
+                "icon_url": actor.get("icon_url"),
                 "active": True
             })
   
@@ -947,60 +1020,60 @@ class Bluesky():
 
         def map_post(source, post):
             return {
-                "source_id": source["id"],
+                "source_id": source.get("id"),
                 "base_url": Bluesky.BASE_URL,
                 "platform": "bluesky",
-                "platform_id": post.id,
+                "platform_id": post.get("id"),
                 "title": None,
-                "content": post.content,
-                "url": post.url,
-                "published": post.published,
-                "attachments": post.attachments,
-                "poll": post.poll
+                "content": post.get("content"),
+                "url": post.get("url"),
+                "published": post.get("published"),
+                "attachments": post.get("attachments"),
+                "poll": post.get("poll")
             }
 
 
         for post in data["posts"]:
-            if post.id is None:
+            if post.get("id") is None:
                 continue
-            source = sources[post.author.id]
+            source = sources[post["author"]["id"]]
             posts.append(map_post(source, post))
 
 
         for post in data["partials"]:
-            if post.id is None:
+            if post.get("id") is None:
                 continue
-            source = sources[post.author.id]
+            source = sources[post["author"]["id"]]
             partials.append(map_post(source, post))
 
            
         for post in (data["posts"] + data["partials"]):
-            if post.id is None:
+            if post.get("id") is None:
                 continue
             
-            if post.share != None:
+            if post.get("share") is not None:
                 edges.append({
                     "origin_type": "post",
-                    "origin_reference": post.id,
+                    "origin_reference": post["id"],
                     "target_type": "post",
-                    "target_reference": post.share.id,
+                    "target_reference": post["share"]["id"],
                     "name": "shares",
                 })
 
-            if post.reply != None:
+            if post.get("reply") is not None:
                 edges.append({
                     "origin_type": "post",
-                    "origin_reference": post.id,
+                    "origin_reference": post["id"],
                     "target_type": "post",
-                    "target_reference": post.reply.id,
+                    "target_reference": post["reply"]["id"],
                     "name": "replies",
                 })
 
-            if post.thread is not None:
-                for id in post.thread:
+            if post.get("thread") is not None:
+                for id in post["thread"]:
                     edges.append({
                         "origin_type": "post",
-                        "origin_reference": post.id,
+                        "origin_reference": post["id"],
                         "target_type": "post",
                         "target_reference": id,
                         "name": "threads",
@@ -1125,9 +1198,18 @@ class Bluesky():
                 actors.append(actor)
 
 
-
-        return {
-            "posts": posts,
-            "partials": partials,
-            "actors": actors
+        results = {
+            "posts": [],
+            "partials": [],
+            "actors": [],
         }
+
+        for post in posts:
+            results["posts"].append(post.to_dict())
+        for partial in partials:
+            results["partials"].append(partial.to_dict())
+        for actor in actors:
+            results["actors"].append(actor.to_dict())
+
+        return results
+

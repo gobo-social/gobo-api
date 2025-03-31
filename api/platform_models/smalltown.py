@@ -4,13 +4,14 @@ import models
 from clients import Mastodon
 import http_errors
 from .helpers import get_mastodon_credentials
+from tasks import Task
 
 
 def get_redirect_url(person, base_url):
     get_mastodon_credentials(base_url)
     client = Mastodon({"base_url": base_url})
     client.login()
-    state = joy.crypto.random({"encoding": "safe-base64"})
+    state = joy.crypto.address()
     url = client.get_redirect_url(state)
 
     _registration = {
@@ -110,15 +111,15 @@ def confirm_identity(registration, data):
       "secondary": None
     })
 
-    models.task.add({
-        "queue": "default",
-        "name": "flow - update identity",
-        "priority": 1,
-        "details": {
+    Task.send(
+        channel = "default",
+        name = "flow - update identity",
+        priority = 1,
+        details = {
             "identity": identity,
             "is_onboarding": True
         }
-    })
+    )
     
     models.registration.remove(registration["id"])
 

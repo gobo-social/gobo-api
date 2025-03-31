@@ -1,13 +1,8 @@
 import logging
 import models
 import joy
-import queues
 from . import helpers as h
 from .stale import handle_stale
-
-where = models.helpers.where
-build_query = models.helpers.build_query
-QueryIterator = models.helpers.QueryIterator
 
 
 def check_source_lockout(task):
@@ -36,20 +31,21 @@ def get_source_cursor(task):
         return
     else:
       return {
-        "cursor": cursor,
+        "cursor": cursor.to_json(),
         "last_retrieved": last_retrieved
       }
 
 
 @handle_stale
 def pull_sources(task):
-    client = h.enforce("client", task)
+    client = h.get_client(task)
     graph = client.list_sources()
     return {"graph": graph}
 
 
+# No stale protection needed for unconnected client.
 def map_sources(task):
-    client = h.enforce("client", task)
+    client = h.get_unconnected_client(task)
     graph = h.enforce("graph", task)
     sources = client.map_sources(graph)
     return {"sources": sources}

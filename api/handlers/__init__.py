@@ -1,4 +1,5 @@
 from .action import *
+from .channel import *
 from .discovery import *
 from .identity import *
 from .filter import *

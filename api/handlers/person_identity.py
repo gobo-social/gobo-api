@@ -4,6 +4,7 @@ import http_errors
 import models
 from db import tables
 from .helpers import parse_page_query
+from tasks import Task
 
 def censor_identity(identity):
     identity.pop("oauth_token", None)
@@ -76,14 +77,14 @@ def person_identity_delete(person_id, id):
     })
 
     # ...but remove the associated resources with the worker.
-    models.task.add({
-        "queue": "default",
-        "name": "remove identity",
-        "priority": 1,
-        "details": {
+    Task.send(
+        channel = "default",
+        name = "remove identity",
+        priority = 1,
+        details = {
             "identity": identity
         }
-    })
+    )
 
     return {"content": ""}
 

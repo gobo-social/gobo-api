@@ -1,7 +1,7 @@
 import logging
 import joy
 import models
-import queues
+from tasks import Task
 from . import helpers as h
 
 where = models.helpers.where
@@ -9,27 +9,32 @@ QueryIterator = models.helpers.QueryIterator
 
 
 def hard_reset(task):
-    queues.default.put_details(
+    Task.send(
+        channel = "default",
         name = "clear posts",
         priority = task.priority,
         details = task.details
     )
-    queues.default.put_details(
+    Task.send(
+        channel = "default",
         name = "clear sources",
         priority = task.priority,
         details = task.details
     )
-    queues.default.put_details(
+    Task.send(
+        channel = "default",
         name = "clear notifications",
         priority = task.priority,
         details = task.details
     )
-    queues.default.put_details(
+    Task.send(
+        channel = "default",
         name = "clear cursors",
         priority = task.priority,
         details = task.details
     )
-    queues.default.put_details(
+    Task.send(
+        channel = "default",
         name = "clear counters",
         priority = task.priority,
         details = task.details
@@ -61,7 +66,8 @@ def clear_posts(task):
         
         max_id = posts[-1]["id"]
         for post in posts:
-            queues.default.put_details(
+            Task.send(
+                channel = "default",
                 name = "remove post",
                 priority = task.priority,
                 details = {"post": post}
@@ -92,7 +98,8 @@ def clear_sources(task):
         
         max_id = sources[-1]["id"]
         for source in sources:
-            queues.default.put_details(
+            Task.send(
+                channel = "default",
                 name = "remove source",
                 priority = task.priority,
                 details = {"source": source}

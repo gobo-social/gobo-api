@@ -1,7 +1,7 @@
 import logging
 import joy
 import models
-import queues
+from tasks import Task
 from . import helpers as h
 
 where = models.helpers.where
@@ -102,7 +102,8 @@ def rebuild_feed(task):
 
         for source in sources:
             source_id = source["target_id"]
-            queues.default.put_details(
+            Task.send(
+                channel = "default",
                 name = "follow",
                 priority = task.priority,
                 details = {

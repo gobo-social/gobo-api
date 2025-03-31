@@ -14,6 +14,9 @@ COPY ./joy ./joy/
 # - ./models:/usr/src/app/models
 COPY ./models ./models/
 
+# - ./tasks:/usr/src/app/tasks
+COPY ./tasks ./tasks/
+
 # - ./clients:/usr/src/app/clients
 COPY ./clients ./clients/
 

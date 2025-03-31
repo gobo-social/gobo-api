@@ -96,7 +96,9 @@ class Linkedin():
         return self.client.login(self.me)
 
     def get_profile(self):
-        return self.client.get_userinfo(self.me)    
+        return self.client.get_userinfo(self.me)
+    def get_profile_dict(self):
+        return self.get_profile() # passthrough for now
 
     def map_profile(self, data):
         profile = data["profile"]

@@ -38,9 +38,9 @@ def is_gallery(submission):
 def correct_media_url(url):
     return re.sub(r"https://preview.redd.it", "https://i.redd.it", url)
 
-def get_subreddit(submission):
+def get_subreddit_name(submission):
     subreddit = submission["subreddit"]
-    if type(subreddit) is str:
+    if isinstance(subreddit, str):
         return subreddit
     else:
         return subreddit.display_name
@@ -82,7 +82,8 @@ class Submission():
             value = _["created_utc"],
         )
         self.url = Reddit.BASE_URL + _["permalink"]
-        self.subreddit = get_subreddit(_)
+        self.subreddit_name = get_subreddit_name(_)
+        self.subreddit = None
         self.crosspost_parent = _.get("crosspost_parent", None)
         self.attachments = []
         self.poll = None
@@ -160,6 +161,24 @@ class Submission():
         else:
             self.content = url
 
+    def to_dict(self):
+        subreddit = None
+        if self.subreddit:
+            subreddit = self.subreddit.to_dict()
+
+        return {
+            "id": self.id,
+            "title": self.title,
+            "content": self.content,
+            "published": self.published,
+            "url": self.url,
+            "subreddit_name": self.subreddit_name,
+            "subreddit": subreddit,
+            "crosspost_parent": self.crosspost_parent,
+            "attachments": self.attachments,
+            "poll": self.poll,
+        }
+
 # The id and username swap is awkward. The subreddit "name" is its full name,
 # an absolute reference in the Reddit API. However, we reference subreddits
 # in the praw client method by using their display_name.
@@ -171,6 +190,15 @@ class Subreddit():
         self.username = _.id
         self.name = _.display_name
         self.icon_url = _.community_icon
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "url": self.url,
+            "username": self.username,
+            "name": self.name,
+            "icon_url": self.icon_url,
+        }
 
 
 
@@ -185,12 +213,8 @@ class Reddit():
         client = praw.Reddit(
             client_id = environ.get("REDDIT_CLIENT_ID"),
             client_secret = environ.get("REDDIT_CLIENT_SECRET"),
-            user_agent = environ.get("REDDIT_USER_AGENT"),
-            # TODO: It's bad that we hardcode this. Our Reddit integration
-            # currently only serves the production redirect. We should see
-            # if we can submit multiple values or setup multiple applications.
-            redirect_uri = "https://gobo.social/add-identity-callback"
-            # redirect_uri = environ.get("OAUTH_CALLBACK_URL")
+            user_agent = environ.get("REDDIT_USER_AGENT"),            
+            redirect_uri = environ.get("OAUTH_CALLBACK_URL")
         )
 
         return client.auth.url(
@@ -220,28 +244,35 @@ class Reddit():
 
     def get_profile(self):
         return self.client.user.me()
+    def get_profile_dict(self):
+        profile = self.get_profile()
+        return {
+            "name": profile.name,
+            "icon_img": profile.icon_img,
+        }
 
     def map_profile(self, data):
         profile = data["profile"]
         identity = data["identity"]
+        name = profile.get("name")
 
-        identity["profile_url"] = f"{self.BASE_URL}/user/{profile.name}"
-        identity["profile_image"] = profile.icon_img,
-        identity["username"] = profile.name
-        identity["name"] = profile.name
+        identity["profile_url"] = f"{self.BASE_URL}/user/{name}"
+        identity["profile_image"] = profile.get("icon_img"),
+        identity["username"] = name
+        identity["name"] = name
         return identity
 
 
     def get_post(self, id):
         item = self.client.submission(id = id)
-        submission = Submission(item)
+        submission = Submission(item).to_dict()
         return submission
 
     def pluck_posts(self, ids):
         generator = self.client.info(ids)
         submissions = []
         for item in generator:
-            submissions.append(Submission(item))
+            submissions.append(Submission(item).to_dict())
         return submissions
     
     def create_post(self, post, metadata):
@@ -305,7 +336,7 @@ class Reddit():
         output["id"] = f"t3_{raw_id}"
         
         url = Reddit.BASE_URL
-        url += "/r/"
+        url += "/"
         url += subreddit
         url += "/comments/"
         url += raw_id
@@ -363,12 +394,12 @@ class Reddit():
         for subreddit in subreddits:
             sources.append({
                 "platform": "reddit",
-                "platform_id": subreddit.id,
+                "platform_id": subreddit.get("id"),
                 "base_url": Reddit.BASE_URL,
-                "url": subreddit.url,
-                "username": subreddit.username,
-                "name": subreddit.name,
-                "icon_url":subreddit.icon_url,
+                "url": subreddit.get("url"),
+                "username": subreddit.get("username"),
+                "name": subreddit.get("name"),
+                "icon_url":subreddit.get("icon_url"),
                 "active": True
             })
   
@@ -391,50 +422,50 @@ class Reddit():
         partials = []
         edges = []
         for submission in data["submissions"]:
-            if submission.id is None:
+            if submission.get("id") is None:
                 continue
 
-            source = sources[submission.subreddit.id]
+            source = sources[submission["subreddit"]["id"]]
 
             posts.append({
-                "source_id": source["id"],
+                "source_id": source.get("id"),
                 "base_url": Reddit.BASE_URL,
                 "platform": "reddit",
-                "platform_id": submission.id,
-                "title": submission.title,
-                "content": submission.content,
-                "url": submission.url,
-                "published": submission.published,
-                "attachments": submission.attachments,
-                "poll": submission.poll
+                "platform_id": submission.get("id"),
+                "title": submission.get("title"),
+                "content": submission.get("content"),
+                "url": submission.get("url"),
+                "published": submission.get("published"),
+                "attachments": submission.get("attachments"),
+                "poll": submission.get("poll")
             })
 
-            if submission.crosspost_parent is not None:
+            if submission.get("crosspost_parent") is not None:
                 edges.append({
                     "origin_type": "post",
-                    "origin_reference": submission.id,
+                    "origin_reference": submission.get("id"),
                     "target_type": "post",
-                    "target_reference": submission.crosspost_parent,
+                    "target_reference": submission.get("crosspost_parent"),
                     "name": "shares",
                 })
 
         for submission in data["partials"]:
-            if submission.id is None:
+            if submission.get("id") is None:
               continue
 
-            source = sources[submission.subreddit.id]
+            source = sources[submission["subreddit"]["id"]]
 
             partials.append({
-                "source_id": source["id"],
+                "source_id": source.get("id"),
                 "base_url": Reddit.BASE_URL,
                 "platform": "reddit",
-                "platform_id": submission.id,
-                "title": submission.title,
-                "content": submission.content,
-                "url": submission.url,
-                "published": submission.published,
-                "attachments": submission.attachments,
-                "poll": submission.poll
+                "platform_id": submission.get("id"),
+                "title": submission.get("title"),
+                "content": submission.get("content"),
+                "url": submission.get("url"),
+                "published": submission.get("published"),
+                "attachments": submission.get("attachments"),
+                "poll": submission.get("poll")
             })
 
 
@@ -450,7 +481,7 @@ class Reddit():
         generator = self.client.user.subreddits(limit=None)
         subreddits = []
         for item in generator:
-            subreddits.append(Subreddit(item))
+            subreddits.append(Subreddit(item).to_dict())
         return {"subreddits": subreddits} 
 
 
@@ -519,11 +550,11 @@ class Reddit():
         seen_subreddits = set()
         subreddit_dict = {}
         for submission in submissions:
-            if submission.subreddit not in seen_subreddits:
-                seen_subreddits.add(submission.subreddit)
+            if submission.subreddit_name not in seen_subreddits:
+                seen_subreddits.add(submission.subreddit_name)
         for submission in partials:
-            if submission.subreddit not in seen_subreddits:
-                seen_subreddits.add(submission.subreddit)
+            if submission.subreddit_name not in seen_subreddits:
+                seen_subreddits.add(submission.subreddit_name)
 
         generator = self.client.info(subreddits = list(seen_subreddits))
         for item in generator:
@@ -532,14 +563,23 @@ class Reddit():
             subreddit_dict[subreddit.name] = subreddit
 
         for submission in submissions:
-            submission.subreddit = subreddit_dict[submission.subreddit]
+            submission.subreddit = subreddit_dict[submission.subreddit_name]
         for submission in partials:
-            submission.subreddit = subreddit_dict[submission.subreddit]
+            submission.subreddit = subreddit_dict[submission.subreddit_name]
 
 
-        return {
-            "submissions": submissions,
-            "partials": partials,
+        results = {
+            "submissions": [],
+            "partials": [],
             "preexisting": preexisting,
-            "subreddits": subreddits
+            "subreddits": [],
         }
+
+        for submission in submissions:
+            results["submissions"].append(submission.to_dict())
+        for partial in partials:
+            results["partials"].append(partial.to_dict())
+        for subreddit in subreddits:
+            results["subreddits"].append(subreddit.to_dict())
+
+        return results

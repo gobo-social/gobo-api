@@ -1,18 +1,16 @@
 import logging
 import models
 import joy
-import queues
+from tasks import Task
 from . import helpers as h
 from .stale import handle_stale
 
 where = models.helpers.where
-build_query = models.helpers.build_query
-QueryIterator = models.helpers.QueryIterator
 
 
 @handle_stale
 def pull_posts(task):
-    client = h.enforce("client", task)
+    client = h.get_client(task)
     source = h.enforce("source", task)
     last_retrieved = task.details.get("last_retrieved", None)
     is_shallow = task.details.get("is_shallow", False)
@@ -28,8 +26,9 @@ def pull_posts(task):
     return {"graph": graph}
 
 
+# No stale protection needed for unconnected client.
 def map_posts(task):
-    client = h.enforce("client", task)
+    client = h.get_unconnected_client(task)
     graph = h.enforce("graph", task)
     graph["sources"] = h.enforce("sources", task)
     post_data = client.map_posts(graph)
@@ -113,7 +112,8 @@ def upsert_posts(task):
     if is_list == True:
         source = h.enforce("source", task)
         for post in full_posts:
-            queues.default.put_details(
+            Task.send(
+                channel = "default",
                 name = "add post to list followers", 
                 priority = task.priority,
                 details = {
@@ -123,7 +123,8 @@ def upsert_posts(task):
             )
     else:
         for post in full_posts:
-            queues.default.put_details(
+            Task.send(
+                channel = "default",
                 name = "add post to followers", 
                 priority = task.priority,
                 details = {"post": post}
@@ -153,8 +154,10 @@ def add_post_to_followers(task):
     })
 
     if len(followers) == per_page:
-        task.update({"page": page + 1})
-        queues.default.put_task(task)
+        Task.send_copy(
+            task = task,
+            new_details = {"page": page + 1}
+        )
 
     for follower in followers:
         models.link.upsert({
@@ -185,8 +188,10 @@ def add_post_to_list_followers(task):
     })
 
     if len(followers) == per_page:
-        task.update({"page": page + 1})
-        queues.default.put_task(task)
+        Task.send_copy(
+            task = task,
+            new_details = {"page": page + 1}
+        )
 
     for follower in followers:
         models.link.upsert({

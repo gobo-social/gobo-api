@@ -3,13 +3,14 @@ import joy
 import models
 from clients import Reddit
 import http_errors
+from tasks import Task
 
 BASE_URL = Reddit.BASE_URL
 
 
 def get_redirect_url(person):
     client = Reddit()
-    state = joy.crypto.random({"encoding": "safe-base64"})
+    state = joy.crypto.address()
     url = client.get_redirect_url(state)
 
     _registration = {
@@ -97,15 +98,15 @@ def confirm_identity(registration, data):
       "secondary": None
     })
 
-    models.task.add({
-        "queue": "default",
-        "name": "flow - update identity",
-        "priority": 1,
-        "details": {
+    Task.send(
+        channel = "default",
+        name = "flow - update identity",
+        priority = 1,
+        details = {
             "identity": identity,
             "is_onboarding": True
         }
-    })
+    )
     
     models.registration.remove(registration["id"])
 

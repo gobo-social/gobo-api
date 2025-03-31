@@ -1,11 +1,10 @@
 import logging
 import models
 import joy
-import queues
+from tasks import Task
 from . import helpers as h
 
 where = models.helpers.where
-build_query = models.helpers.build_query
 QueryIterator = models.helpers.QueryIterator
 
 publish_only = [
@@ -30,7 +29,8 @@ def fanout_update_identity(task):
         wheres = wheres
     )
     for identity in identities:
-        queues.default.put_details(
+        Task.send(
+            channel = "default",
             name = "flow - update identity",
             priority = task.priority,
             details = {"identity": identity}
@@ -54,7 +54,8 @@ def fanout_pull_notifications(task):
         wheres = wheres
     )
     for identity in identities:
-        queues.default.put_details(
+        Task.send(
+            channel = "default",
             name = "flow - pull notifications",
             priority = task.priority,
             details = {"identity": identity}

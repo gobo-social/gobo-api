@@ -16,6 +16,16 @@ class LocalTimelineAccount():
         self.icon_url = None
         self.platform = "smalltown"
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "url": self.url,
+            "username": self.username,
+            "name": self.name,
+            "icon_url": self.icon_url,
+            "platform": self.platform,
+        }
+
 
 class Smalltown(Mastodon):
     
@@ -23,7 +33,7 @@ class Smalltown(Mastodon):
     # However, the result will always be a list with one item, the virtual source
     # representing the Smalltown server's local timeline.
     def list_sources(self):
-        return {"accounts": [LocalTimelineAccount()]}
+        return {"accounts": [LocalTimelineAccount().to_dict()]}
 
     def get_post_graph(self, source, last_retrieved = None, is_shallow = False):
         isDone = False
@@ -132,10 +142,18 @@ class Smalltown(Mastodon):
                 accounts.append(account)
 
 
-
-        return {
-            "statuses": statuses,
-            "partials": partials,
-            "accounts": accounts,
+        results = {
+            "statuses": [],
+            "partials": [],
+            "accounts": [],
             "is_list": True
         }
+
+        for status in statuses:
+            results["statuses"].append(status.to_dict())
+        for partial in partials:
+            results["partials"].append(partial.to_dict())
+        for account in accounts:
+            results["accounts"].append(account.to_dict())
+
+        return results

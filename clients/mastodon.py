@@ -54,7 +54,7 @@ class Status():
         self.poll = None
         self.reblog = None
         self.reply = None
-        self.thread = None
+        self.thread = []
 
         if _.reblog is not None:
             self.reblog = Status(_.reblog)
@@ -108,6 +108,29 @@ class Status():
         if type == "private":
             return "followers only"
         return type
+
+    def to_dict(self):
+        account = None
+        if self.account:
+            account = self.account.to_dict()
+        reblog = None
+        if self.reblog:
+            reblog = self.reblog.to_dict()
+
+        return {
+            "id": self.id,
+            "account": account,
+            "content": self.content,
+            "url": self.url,
+            "visibility": self.visibility,
+            "published": self.published,
+            "attachments": self.attachments,
+            "poll": self.poll,
+            "reblog": reblog,
+            "reply": self.reply,
+            "thread": self.thread,
+        }
+          
                
 
 class Account():
@@ -137,10 +160,16 @@ class Account():
             return "smalltown"
         else:
             return "mastodon"
-
-class Poll():
-    def __init(self, _):
-        self.id = _.id
+        
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "url": self.url,
+            "username": self.username,
+            "name": self.name,
+            "icon_url": self.icon_url,
+            "platform": self.platform,
+        }
 
 
 def build_notification(item, is_active):
@@ -201,6 +230,24 @@ class Notification():
         if meta["has_post"] == True:
             meta["is_direct_message"] = status is None
         return meta
+    
+    def to_dict(self):
+        account = None
+        if self.account:
+            account = self.account.to_dict()
+        status = None
+        if self.status:
+            status = self.status.to_dict()
+
+        return {
+            "id": self.id,
+            "created": self.created,
+            "active": self.active,
+            "account": account,
+            "status": status,
+            "type": self.type,
+            "post_meta": self.post_meta,
+        }
 
 
 class Mastodon():
@@ -257,15 +304,17 @@ class Mastodon():
 
     def get_profile(self):
         return self.client.me()
+    def get_profile_dict(self):
+        return Account(self.get_profile()).to_dict()
     
     def map_profile(self, data):
         profile = data["profile"]
         identity = data["identity"]
 
-        identity["profile_url"] = profile.url
-        identity["profile_image"] = profile.avatar
-        identity["username"] = profile.username
-        identity["name"] = profile.display_name
+        identity["profile_url"] = profile.get("url")
+        identity["profile_image"] = profile.get("icon_url")
+        identity["username"] = profile.get("username")
+        identity["name"] = profile.get("name")
         return identity
 
     
@@ -286,7 +335,7 @@ class Mastodon():
 
         return self.client.status_post(
             status = post.get("content", ""),
-            idempotency_key = joy.crypto.random({"encoding": "safe-base64"}),
+            idempotency_key = joy.crypto.address(),
             media_ids = media_ids,
             sensitive = metadata.get("sensitive", False),
             spoiler_text = metadata.get("spoiler", None),
@@ -397,12 +446,21 @@ class Mastodon():
                 seen_accounts.add(account.id)
                 accounts.append(account)
       
-        return {
+        results = {
             "statuses": [],
-            "accounts": accounts,
-            "partials": partials,
-            "notifications": notifications
+            "accounts": [],
+            "partials": [],
+            "notifications": []
         }
+
+        for account in accounts:
+            results["accounts"].append(account.to_dict())
+        for partial in partials:
+            results["partials"].append(partial.to_dict())
+        for notification in notifications:
+            results["notifications"].append(notification.to_dict())
+
+        return results
     
 
     # Mastodon doesn't seem to have a concept of reading a notification. Their
@@ -424,20 +482,20 @@ class Mastodon():
         for notification in data["notifications"]:
             source_id = None
             post_id = None
-            if notification.account is not None:
-                source_id = sources[notification.account.id]["id"]
-            if notification.status is not None:
-                post_id = posts[notification.status.id]["id"]
+            if notification.get("account") is not None:
+                source_id = sources[notification["account"]["id"]]["id"]
+            if notification.get("status") is not None:
+                post_id = posts[notification["status"]["id"]]["id"]
             notifications.append({
-                "platform": notification.account.platform,
-                "platform_id": notification.id,
-                "base_url": self.base_url,
-                "type": notification.type,
-                "notified": notification.created,
-                "active": notification.active,
+                "platform": notification["account"]["platform"],
+                "platform_id": notification["id"],
+                "base_url": self["base_url"],
+                "type": notification["type"],
+                "notified": notification["created"],
+                "active": notification["active"],
                 "source_id": source_id,
                 "post_id": post_id,
-                "post_meta": notification.post_meta
+                "post_meta": notification["post_meta"]
             })
 
         return notifications
@@ -445,15 +503,15 @@ class Mastodon():
 
     def map_sources(self, data):
         sources = []
-        for account in data["accounts"]:
+        for account in data.get("accounts", []):
             sources.append({
-                "platform": account.platform,
-                "platform_id": account.id,
+                "platform": account.get("platform"),
+                "platform_id": account.get("id"),
                 "base_url": self.base_url,
-                "url": account.url,
-                "username": account.username,
-                "name": account.name,
-                "icon_url": account.icon_url,
+                "url": account.get("url"),
+                "username": account.get("username"),
+                "name": account.get("name"),
+                "icon_url": account.get("icon_url"),
                 "active": True
             })
   
@@ -472,62 +530,61 @@ class Mastodon():
 
         def map_post(source, status):
             return {
-                "source_id": source["id"],
-                "base_url": source["base_url"],
-                "platform": source["platform"],
-                "platform_id": status.id,
+                "source_id": source.get("id"),
+                "base_url": source.get("base_url"),
+                "platform": source.get("platform"),
+                "platform_id": status.get("id"),
                 "title": None,
-                "content": status.content,
-                "visibility": status.visibility,
-                "url": status.url,
-                "published": status.published,
-                "attachments": status.attachments,
-                "poll": status.poll
+                "content": status.get("content"),
+                "visibility": status.get("visibility"),
+                "url": status.get("url"),
+                "published": status.get("published"),
+                "attachments": status.get("attachments"),
+                "poll": status.get("poll"),
             }
 
 
         for status in data["statuses"]:
-            if status.id is None:
+            if status.get("id") is None:
                 continue
-            source = sources[status.account.id]
+            source = sources[status["account"]["id"]]
             posts.append(map_post(source, status))
 
 
         for status in data["partials"]:
-            if status.id is None:
+            if status.get("id") is None:
                 continue
-            source = sources[status.account.id]
+            source = sources[status["account"]["id"]]
             partials.append(map_post(source, status))
 
         
         for status in (data["statuses"] + data["partials"]):
-            if status.reblog is not None:
+            if status.get("reblog") is not None:
                 edges.append({
                     "origin_type": "post",
-                    "origin_reference": status.id,
+                    "origin_reference": status.get("id"),
                     "target_type": "post",
-                    "target_reference": status.reblog.id,
+                    "target_reference": status["reblog"].get("id"),
                     "name": "shares",
                 })
 
-            if status.reply is not None:
+            if status.get("reply") is not None:
                 edges.append({
                     "origin_type": "post",
-                    "origin_reference": status.id,
+                    "origin_reference": status.get("id"),
                     "target_type": "post",
-                    "target_reference": status.reply,
+                    "target_reference": status["reply"],
                     "name": "replies",
                 })
 
-            if status.thread is not None:
-                for id in status.thread:
-                    edges.append({
-                        "origin_type": "post",
-                        "origin_reference": status.id,
-                        "target_type": "post",
-                        "target_reference": id,
-                        "name": "threads",
-                    })
+            for id in status["thread"]:
+                edges.append({
+                    "origin_type": "post",
+                    "origin_reference": status.get("id"),
+                    "target_type": "post",
+                    "target_reference": id,
+                    "name": "threads",
+                })
 
 
         return {
@@ -540,7 +597,7 @@ class Mastodon():
     def list_sources(self):
         accounts = []
         logging.info("Mastodon: Fetching self profile data")
-        accounts.append(Account(self.get_profile()))
+        accounts.append(self.get_profile_dict())
 
         id = self.identity["platform_id"]
         max_id = None
@@ -556,7 +613,7 @@ class Mastodon():
                 break
               
             for item in items:
-                accounts.append(Account(item))
+                accounts.append(Account(item).to_dict())
 
             page_data = getattr(items[-1], "_pagination_next", None)
             if page_data is None:
@@ -676,9 +733,17 @@ class Mastodon():
                 accounts.append(account)
 
 
-
-        return {
-            "statuses": statuses,
-            "partials": partials,
-            "accounts": accounts
+        results = {
+            "statuses": [],
+            "partials": [],
+            "accounts": [],
         }
+
+        for status in statuses:
+            results["statuses"].append(status.to_dict())
+        for partial in partials:
+            results["partials"].append(partial.to_dict())
+        for account in accounts:
+            results["accounts"].append(account.to_dict())
+
+        return results

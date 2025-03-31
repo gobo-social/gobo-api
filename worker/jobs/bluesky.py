@@ -1,21 +1,15 @@
 import logging
 import json
 import models
-import queues
 import joy
 from clients import Bluesky, HTTPError
 from clients.bluesky import Post as BlueskyPost
 from . import tasks
 
 h = tasks.helpers
-where = models.helpers.where
-build_query = models.helpers.build_query
-QueryIterator = models.helpers.QueryIterator
 
 
 def dispatch(task):
-    if task.name == "get client":
-        return tasks.get_client(task)
     if task.name == "get profile":
         return tasks.get_profile(task)
     

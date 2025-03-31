@@ -3,6 +3,7 @@ from flask import request
 import http_errors
 import models
 from platform_models import bluesky, reddit
+from tasks import Task
 
 def get_unfurl_image(person_id, image):
     id = image.get("id")
@@ -154,16 +155,16 @@ def person_posts_post(person_id):
 
         delivery["targets"].append(target["id"])
        
-        models.task.add({
-            "queue": identity["platform"],
-            "name": "create post",
-            "priority": 1,
-            "details": {
+        Task.send(
+            channel = identity["platform"],
+            name = "create post",
+            priority = 1,
+            details = {
               "target": target,
               "identity": identity,
               "thread": thread,
             }
-        })
+        )
 
     draft["state"] = "submitted"
     models.draft.update(draft["id"], draft)

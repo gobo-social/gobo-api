@@ -1,12 +1,11 @@
 import logging
 import models
 import joy
-import queues
+from tasks import Task
 from clients import Bluesky, Reddit
 from . import helpers as h
 
 where = models.helpers.where
-build_query = models.helpers.build_query
 QueryIterator = models.helpers.QueryIterator
 
 def resolve_platform(url):
@@ -48,22 +47,38 @@ def boostrap_platform_labels(task):
         per_page = 1
     )
     for identity in identities:
-        queues.default.put_details("label identity platform", {"identity": identity})
+        Task.send(
+            channel = "default",
+            name = "label identity platform",
+            details = {"identity": identity},
+        )
 
     posts = QueryIterator(
         model = models.post,
     )
     for post in posts:
-        queues.default.put_details("label post platform", {"post": post})
+        Task.send(
+            channel = "default",
+            name = "label post platform",
+            details = {"post": post},
+        )
 
     registrations = QueryIterator(
         model = models.registration,
     )
     for registration in registrations:
-        queues.default.put_details("label registration platform", {"registration": registration})
+        Task.send(
+            channel = "default",
+            name = "label registration platform",
+            details = {"registration": registration},
+        )
 
     sources = QueryIterator(
         model = models.source,
     )
     for source in sources:
-        queues.default.put_details("label source platform", {"source": source})
+        Task.send(
+            channel = "default",
+            name = "label source platform",
+            details = {"source": source},
+        )

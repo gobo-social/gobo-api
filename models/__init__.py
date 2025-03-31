@@ -22,3 +22,4 @@ import models.reference as reference
 import models.linkedin_session as linkedin_session
 import models.delivery as delivery
 import models.delivery_target as delivery_target
+import models.channel as channel

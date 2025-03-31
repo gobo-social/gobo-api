@@ -3,10 +3,9 @@ import os
 import models
 import joy
 from clients import Bluesky, Linkedin, Mastodon, Reddit, Smalltown
-import queues
+from tasks import Task
 
 where = models.helpers.where
-build_query = models.helpers.build_query
 QueryIterator = models.helpers.QueryIterator
 supported_platforms = [
   "all",
@@ -49,7 +48,7 @@ def enforce(name, task):
     return value
 
 
-def get_client(identity):
+def _get_client(identity):
     platform = get_platform(identity)
 
     if platform == "bluesky":
@@ -67,9 +66,25 @@ def get_client(identity):
     
     return client
 
+def get_client(task):
+    identity = enforce("identity", task)
+    client = _get_client(identity)
+    client.login()
+    return client
+
+# This is for when we need access to an instance of the given platform's client
+# class, but we don't need to login, and we don't need to full stale protections.
+def get_unconnected_client(task):
+    identity = enforce("identity", task)
+    client = _get_client(identity)
+    return client
+
 def get_identity(id):
     return models.identity.get(id)
 
+def get_cursor(task):
+    string = enforce("cursor", task)
+    return models.cursor.LoopCursor.from_json(string)
 
 def read_draft_file(file):
     filename = os.path.join(os.environ.get("UPLOAD_DIRECTORY"), file["filename"])
@@ -99,7 +114,8 @@ def reconcile_sources(task, identity, sources):
     difference = desired_sources - current_sources
     for source_id in difference:
         logging.info(f"For identity {identity['id']}, adding source {source_id}")
-        queues.default.put_details(
+        Task.send(
+            channel = "default",
             name = "follow",
             priority = task.priority,
             details = {
@@ -111,7 +127,8 @@ def reconcile_sources(task, identity, sources):
     difference = current_sources - desired_sources
     for source_id in difference:
         logging.info(f"For identity {identity['id']}, removing source {source_id}")
-        queues.default.put_details(
+        Task.send(
+            channel = "default",
             name = "unfollow",
             priority = task.priority,
             details = {
@@ -355,11 +372,6 @@ def remove_person(person_id):
 def stale_identity(identity):
     identity["stale"] = True
     models.identity.upsert(identity)
-
-def rollback_cursor(task):
-    cursor = task.details.get("cursor")
-    if cursor is not None:
-        cursor.rollback()
 
 def remove_proof(proof):
     links = QueryIterator(

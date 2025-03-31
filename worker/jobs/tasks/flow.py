@@ -1,12 +1,8 @@
 import logging
 import models
 import joy
-import queues
+from tasks import Task
 from . import helpers as h
-
-where = models.helpers.where
-build_query = models.helpers.build_query
-QueryIterator = models.helpers.QueryIterator
 
 
 # no-op to create stable start point for all flows.
@@ -20,149 +16,148 @@ def flow_update_identity(task):
     platform = h.get_platform(identity)
     is_onboarding = task.details.get("is_onboarding", False)
 
-    queues.default.put_flow(task.priority, [
-        {
-            "queue": platform, 
-            "name": "get client",
-            "details": {
-                "identity": identity,
-                "is_shallow": is_onboarding
+    Task.send_flow(
+        priority = task.priority,
+        flow = [
+            {
+                "channel": platform, 
+                "name": "get profile",
+                "details": {
+                    "identity": identity,
+                    "is_shallow": is_onboarding
+                }
+            },
+            {
+                "channel": "default", 
+                "name": "map profile",
+            },
+            {
+                "channel": "default", 
+                "name": "upsert profile"
+            },
+            {
+                "channel": "default",
+                "name": "filter publish only"  
+            },
+            {
+                "channel": platform, 
+                "name": "pull sources",
+            },
+            {
+                "channel": "default", 
+                "name": "map sources"
+            },
+            {
+                "channel": "default", 
+                "name": "upsert sources"
+            },
+            {
+                "channel": "default", 
+                "name": "reconcile sources",
+            },
+            {
+                "channel": "default",
+                "name": "flow - pull notifications"
+            },
+            {
+                "channel": "default",
+                "name": "flow - update identity feed"
             }
-        },
-        {
-            "queue": platform, 
-            "name": "get profile",
-        },
-        {
-            "queue": "default", 
-            "name": "map profile",
-        },
-        {
-            "queue": "default", 
-            "name": "upsert profile"
-        },
-        {
-            "queue": "default",
-            "name": "filter publish only"  
-        },
-        {
-            "queue": platform, 
-            "name": "pull sources",
-        },
-        {
-            "queue": "default", 
-            "name": "map sources"
-        },
-        {
-            "queue": "default", 
-            "name": "upsert sources"
-        },
-        {
-            "queue": "default", 
-            "name": "reconcile sources",
-        },
-        {
-            "queue": "default",
-            "name": "flow - pull notifications"
-        },
-        {
-            "queue": "default",
-            "name": "flow - update identity feed"
-        }
-    ])
+        ]
+    )
 
 def flow_update_identity_feed(task):
     identity = h.enforce("identity", task)
     platform = h.get_platform(identity)
-    client = h.enforce("client", task)
     sources = h.enforce("sources", task)
     is_shallow = task.details.get("is_shallow", False)
 
     for source in sources:
-        queues.default.put_flow(
+        Task.send_flow(
             priority = task.priority,
-            failure = h.rollback_cursor,
+            failure = "rollback cursor",
             flow = [
-            {
-                "queue": "default",
-                "name": "check source lockout",
-                "details": {
-                    "platform": platform,
-                    "identity": identity,
-                    "client": client,
-                    "source": source
-                }
-            },
-            {
-                "queue": "default",
-                "name": "get source cursor"
-            },
-            {
-                "queue": platform, 
-                "name": "pull posts",
-                "details": {"is_shallow": is_shallow}
-            },
-            {
-                "queue": "default", 
-                "name": "map sources"
-            },
-            {
-                "queue": "default", 
-                "name": "upsert sources",
-            },
-            {
-                "queue": "default", 
-                "name": "map posts"
-            },
-            {
-                "queue": "default", 
-                "name": "upsert posts"
-            },
-        ])
+                {
+                    "channel": "default",
+                    "name": "check source lockout",
+                    "details": {
+                        "platform": platform,
+                        "identity": identity,
+                        "source": source
+                    }
+                },
+                {
+                    "channel": "default",
+                    "name": "get source cursor"
+                },
+                {
+                    "channel": platform, 
+                    "name": "pull posts",
+                    "details": {"is_shallow": is_shallow}
+                },
+                {
+                    "channel": "default", 
+                    "name": "map sources"
+                },
+                {
+                    "channel": "default", 
+                    "name": "upsert sources",
+                },
+                {
+                    "channel": "default", 
+                    "name": "map posts"
+                },
+                {
+                    "channel": "default", 
+                    "name": "upsert posts"
+                },
+            ]
+        )
 
 
 def flow_onboard_identity(task):
     identity = h.enforce("identity", task)
 
-    queues.default.put_details("flow - update identity", {
-        "priority": task.priority,
-        "identity": identity,
-        "is_onboarding": True
-    })
+    Task.send(
+        channel = "default",
+        name = "flow - update identity",
+        priority = task.priority,
+        details = {
+            "identity": identity,
+            "is_onboarding": True
+        }
+    )
 
 
 
 def flow_pull_sources(task):
     identity = h.enforce("identity", task)
     platform = h.get_platform(identity)
-    client = task.details.get("client")
 
-    queues.default.put_flow(task.priority, [
-        {
-            "queue": platform, 
-            "name": "get client",
-            "details": {
-                "identity": identity,
-                "client": client
+    Task.send_flow(
+        priority = task.priority,
+        flow = [
+            {
+                "channel": platform, 
+                "name": "pull sources",
+                "details": {
+                    "identity": identity,
+                }
+            },
+            {
+                "channel": "default", 
+                "name": "map sources"
+            },
+            {
+                "channel": "default", 
+                "name": "upsert sources"
+            },
+            {
+                "channel": "default", 
+                "name": "reconcile sources",
             }
-        },
-        {
-            "queue": platform, 
-            "name": "pull sources",
-        },
-        {
-            "queue": "default", 
-            "name": "map sources"
-        },
-        {
-            "queue": "default", 
-            "name": "upsert sources"
-        },
-        {
-            "queue": "default", 
-            "name": "reconcile sources",
-        }
-    ])
+        ]
+    )
 
 
 
@@ -170,103 +165,93 @@ def flow_pull_posts(task):
     identity = h.enforce("identity", task)
     source = h.enforce("source", task)
     platform = h.get_platform(source)
-    client = task.details.get("client")
 
-    queues.default.put_flow(
+    Task.send_flow(
         priority = task.priority,
-        failure = h.rollback_cursor,
+        failure = "rollback cursor",
         flow = [
-        {
-            "queue": platform, 
-            "name": "get client",
-            "details": {
-                "identity": identity,
-                "client": client
-            }
-        },
-        {
-            "queue": "default",
-            "name": "check source lockout",
-            "details": {"source": source}
-        },
-        {
-            "queue": "default",
-            "name": "get source cursor"
-        },
-        {
-            "queue": platform, 
-            "name": "pull posts",
-        },
-        {
-            "queue": "default", 
-            "name": "map sources"
-        },
-        {
-            "queue": "default", 
-            "name": "upsert sources",
-        },
-        {
-            "queue": "default", 
-            "name": "map posts"
-        },
-        {
-            "queue": "default", 
-            "name": "upsert posts"
-        },
-    ])
+            {
+                "channel": "default",
+                "name": "check source lockout",
+                "details": {
+                    "identity": identity,
+                    "source": source,
+                }
+            },
+            {
+                "channel": "default",
+                "name": "get source cursor"
+            },
+            {
+                "channel": platform, 
+                "name": "pull posts",
+            },
+            {
+                "channel": "default", 
+                "name": "map sources"
+            },
+            {
+                "channel": "default", 
+                "name": "upsert sources",
+            },
+            {
+                "channel": "default", 
+                "name": "map posts"
+            },
+            {
+                "channel": "default", 
+                "name": "upsert posts"
+            },
+        ]
+    )
 
 
 
 def flow_pull_notifications(task):
     identity = h.enforce("identity", task)
     platform = h.get_platform(identity)
-    client = task.details.get("client")
 
-    queues.default.put_flow(
+    Task.send_flow(
         priority = task.priority,
-        failure = h.rollback_cursor,
+        failure = "rollback cursor",
         flow = [
-        {
-          "queue": platform,
-          "name": "get client",
-          "details": {
-              "identity": identity,
-              "client": client
-          }
-        },
-        {
-            "queue": "default",
-            "name": "get notification cursor"
-        },
-        {
-            "queue": platform, 
-            "name": "pull notifications"
-        },
-        {
-            "queue": "default", 
-            "name": "map sources"
-        },
-        {
-            "queue": "default", 
-            "name": "upsert sources"
-        },
-        {
-            "queue": "default", 
-            "name": "map posts"
-        },
-        {
-            "queue": "default", 
-            "name": "upsert posts"
-        },
-        {
-            "queue": "default", 
-            "name": "map notifications"
-        },
-        {
-            "queue": "default", 
-            "name": "upsert notifications"
-        }
-    ])
+            {
+                "channel": "default",
+                "name": "get notification cursor",
+                "details": {
+                  "identity": identity,
+              }
+            },
+            {
+                "channel": platform, 
+                "name": "pull notifications"
+            },
+            {
+                "channel": "default", 
+                "name": "map sources"
+            },
+            {
+                "channel": "default", 
+                "name": "upsert sources"
+            },
+            {
+                "channel": "default", 
+                "name": "map posts"
+            },
+            {
+                "channel": "default", 
+                "name": "upsert posts"
+            },
+            {
+                "channel": "default", 
+                "name": "map notifications"
+            },
+            {
+                "channel": "default", 
+                "name": "upsert notifications"
+            }
+        ]
+    )
 
 
 def flow_dismiss_notification(task):
@@ -274,22 +259,19 @@ def flow_dismiss_notification(task):
     platform = h.get_platform(identity)
     notification_id = h.enforce("notification_id", task)
 
-    queues.default.put_flow(
+    Task.send_flow(
         priority = task.priority,
         flow = [
-        {
-          "queue": platform,
-          "name": "get client",
-          "details": {
-              "identity": identity,
-              "notification_id": notification_id
-          }
-        },
-        {
-            "queue": platform, 
-            "name": "dismiss notification"
-        }
-    ])
+            {
+                "channel": platform, 
+                "name": "dismiss notification",
+                "details": {
+                  "identity": identity,
+                  "notification_id": notification_id
+              }
+            }
+        ]
+    )
 
 
 # TODO: Does this belong in its own module category?

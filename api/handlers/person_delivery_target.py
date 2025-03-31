@@ -2,6 +2,7 @@ import logging
 from flask import request
 import http_errors
 import models
+from tasks import Task
 
 
 def person_delivery_target_get(person_id, id):
@@ -49,15 +50,15 @@ def unpublish_action(person_id, id):
   
     target["state"] = "pending"
     target = models.delivery_target.update(target["id"], target)
-    models.task.add({
-        "queue": identity["platform"],
-        "name": "unpublish post",
-        "priority": 1,
-        "details": {
+    Task.send(
+        channel = identity["platform"],
+        name = "unpublish post",
+        priority = 1,
+        details = {
           "target": target,
           "identity": identity,
         }
-    })
+    )
 
 
 def person_delivery_target_post(person_id, id):

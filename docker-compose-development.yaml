@@ -25,6 +25,7 @@ services:
       - ./db:/usr/src/app/db
       - ./joy:/usr/src/app/joy
       - ./models:/usr/src/app/models
+      - ./tasks:/usr/src/app/tasks
       - ./clients:/usr/src/app/clients
       - ./draft_files:/usr/src/app/draft_files
 
@@ -33,6 +34,9 @@ services:
     build:
       context: .
       dockerfile: worker/Dockerfile
+    deploy:
+      mode: replicated
+      replicas: 7
     depends_on:
       - db
     volumes:
@@ -40,5 +44,6 @@ services:
       - ./db:/usr/src/app/db
       - ./joy:/usr/src/app/joy
       - ./models:/usr/src/app/models
+      - ./tasks:/usr/src/app/tasks
       - ./clients:/usr/src/app/clients
       - ./draft_files:/usr/src/app/draft_files

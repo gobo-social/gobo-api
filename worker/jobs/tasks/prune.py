@@ -4,24 +4,23 @@ from os import environ
 from datetime import timedelta
 import models
 import joy
-import queues
+from tasks import Task
 from . import helpers as h
 
 where = models.helpers.where
-build_query = models.helpers.build_query
 QueryIterator = models.helpers.QueryIterator
 
 
 def prune_resources(task):
-    queues.default.put_details("prune draft files")
-    queues.default.put_details("prune drafts")
-    queues.default.put_details("prune posts")
-    queues.default.put_details("prune registrations")
-    queues.default.put_details("prune sources")
-    queues.default.put_details("prune notifications")
-    queues.default.put_details("prune proofs")
-    queues.default.put_details("prune delivery targets")
-    queues.default.put_details("prune deliveries")
+    Task.send("default", "prune draft files")
+    Task.send("default", "prune drafts")
+    Task.send("default", "prune posts")
+    Task.send("default", "prune registrations")
+    Task.send("default", "prune sources")
+    Task.send("default", "prune notifications")
+    Task.send("default", "prune proofs")
+    Task.send("default", "prune delivery targets")
+    Task.send("default", "prune deliveries")
 
 
 

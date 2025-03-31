@@ -2,7 +2,7 @@ import logging
 from functools import wraps
 import mastodon
 import prawcore
-import queues
+from tasks import Task
 from clients import HTTPError, Bluesky
 from . import helpers as h
 
@@ -45,7 +45,8 @@ def handle_stale(f):
             junk, status, status_description, message = e.args
             if status == 401:
                 logging.warning("detected revoked Mastodon token, stale identity")
-                queues.default.put_details(
+                Task.send(
+                    channel = "default",
                     priority = 1,
                     name = "stale identity",
                     details = {"identity": identity}
@@ -66,7 +67,8 @@ def handle_stale(f):
             # See: https://github.com/praw-dev/prawcore/blob/main/prawcore/auth.py
         
             logging.warning("detected revoked Reddit token, stale identity")
-            queues.default.put_details(
+            Task.send(
+                channel = "default",
                 priority = 1,
                 name = "stale identity",
                 details = {"identity": identity}
@@ -77,7 +79,8 @@ def handle_stale(f):
         except HTTPError as e:
             if platform == "linkedin" and e.status == 401:
                 logging.warning("detected revoked LinkedIn token, stale identity")
-                queues.default.put_details(
+                Task.send(
+                    channel = "default",
                     priority = 1,
                     name = "stale identity",
                     details = {"identity": identity}
@@ -99,7 +102,8 @@ def handle_stale(f):
                         client.get_profile()
                     except:
                         logging.warning("detected revoked Bluesky token, stale identity")
-                        queues.default.put_details(
+                        Task.send(
+                            channel = "default",
                             priority = 1,
                             name = "stale identity",
                             details = {"identity": identity}

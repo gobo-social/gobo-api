@@ -2,6 +2,7 @@ import logging
 from flask import request
 import http_errors
 import models
+from tasks import Task
 
 
 def check_identity(person_id, id):
@@ -49,17 +50,17 @@ def person_post_edge_put(person_id, identity_id, post_id, name):
     if edge is not None:
         return {"content": ""}
 
-    models.task.add({
-        "queue": identity["platform"],
-        "name": "add post edge",
-        "priority": 1,
-        "details": {
+    Task.send(
+        channel = identity["platform"],
+        name = "add post edge",
+        priority = 1,
+        details = {
             "identity": identity,
             "post": post,
             "name": name,
             "edge": kernel
         }
-    })
+    )
 
     return {"content": ""}
 
@@ -90,16 +91,16 @@ def person_post_edge_delete(person_id, identity_id, post_id, name):
     if identity.get("platform") == "bluesky" and edge.get("stash") is None:
         raise http_errors.not_found(f"post edge {name} is not found")
 
-    models.task.add({
-        "queue": identity["platform"],
-        "name": "remove post edge",
-        "priority": 1,
-        "details": {
+    Task.send(
+        channel = identity["platform"],
+        name = "remove post edge",
+        priority = 1,
+        details = {
             "identity": identity,
             "post": post,
             "name": name,
             "edge": edge
         }
-    })
+    )
     
     return {"content": ""}

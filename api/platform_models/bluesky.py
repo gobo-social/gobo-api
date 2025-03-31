@@ -4,12 +4,13 @@ from clients.bluesky import Bluesky, SessionFrame
 from clients.gobo_bluesky import GOBOBluesky
 import http_errors
 import joy
+from tasks import Task
 
 BASE_URL = Bluesky.BASE_URL
 
 
 def get_redirect_url(person):
-    state = joy.crypto.random({"encoding": "safe-base64"})
+    state = joy.crypto.address()
 
     _registration = {
         "person_id": person["id"],
@@ -113,15 +114,15 @@ def confirm_identity(registration, data):
       "secondary": None
     })
 
-    models.task.add({
-        "queue": "default",
-        "name": "flow - update identity",
-        "priority": 1,
-        "details": {
+    Task.send(
+        channel = "default",
+        name = "flow - update identity",
+        priority = 1,
+        details = {
             "identity": identity,
             "is_onboarding": True
         }
-    })
+    )
     
     models.registration.remove(registration["id"])
 

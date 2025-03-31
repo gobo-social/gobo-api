@@ -4,6 +4,7 @@ import models
 from clients.linkedin import Linkedin, SessionFrame
 import http_errors
 import joy
+from tasks import Task
 
 BASE_URL = Linkedin.BASE_URL
 
@@ -96,15 +97,15 @@ def confirm_identity(registration, data):
       "secondary": None
     })
 
-    models.task.add({
-        "queue": "default",
-        "name": "flow - update identity",
-        "priority": 1,
-        "details": {
+    Task.send(
+        channel = "default",
+        name = "flow - update identity",
+        priority = 1,
+        details = {
             "identity": identity,
             "is_onboarding": True
         }
-    })
+    )
     
     models.registration.remove(registration["id"])
 

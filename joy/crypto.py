@@ -3,7 +3,7 @@ import secrets
 import base64
 import numpy
 
-def random (configuration = None):
+def random(configuration = None):
     if configuration == None:
         configuration = {}
 
@@ -26,8 +26,12 @@ def random (configuration = None):
 
 
 # Base 36 addresses are guaranteed to be URL safe while maintaining relatively
-# short expression for their byte length.
-def address ( length = 16 ):
+# short expression for their byte length. 
+# Python handles bigint complexity transparently.
+
+# TODO: After testing with timeit, this looks about 10x less efficient than
+# the above random using safe-base64. See if we can speed this up.
+def address( length = 16 ):
     power = length - 1
     result = 0
     for byte in secrets.token_bytes(length):

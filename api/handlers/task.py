@@ -2,10 +2,13 @@ import logging
 from flask import request
 import http_errors
 import models
+from tasks import Task
 from .helpers import parse_query
 
 def tasks_post():
-    return {"content": models.task.add(request.json)}
+    task = Task.make(request.json)
+    content = task.add()
+    return {"content": content}
 
 
 def tasks_get():

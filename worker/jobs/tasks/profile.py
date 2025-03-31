@@ -3,19 +3,15 @@ import models
 from .stale import handle_stale
 from . import helpers as h
 
-where = models.helpers.where
-build_query = models.helpers.build_query
-QueryIterator = models.helpers.QueryIterator
-
-
 @handle_stale
 def get_profile(task):
-    client = h.enforce("client", task)
-    profile = client.get_profile()
+    client = h.get_client(task)
+    profile = client.get_profile_dict()
     return {"profile": profile}
 
+# No stale protection needed for unconnected client.
 def map_profile(task):
-    client = h.enforce("client", task)
+    client = h.get_unconnected_client(task)
     identity = h.enforce("identity", task)
     profile = h.enforce("profile", task)
     identity = client.map_profile({

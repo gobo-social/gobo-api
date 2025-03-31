@@ -1,4 +1,5 @@
 import logging
+import json
 from sqlalchemy import select
 from db.base import Session
 from db import tables
@@ -134,6 +135,25 @@ class LoopCursor():
         self.id = id
         self.name = name
         self.last_retrieved = None
+
+    @staticmethod
+    def from_json(string):
+        data = json.loads(string)
+        cursor = LoopCursor(
+            type = data["type"], 
+            id = data["id"], 
+            name = data["name"]
+        )
+        cursor.last_retrieved = data.get("last_retrieved", None)
+        return cursor
+    
+    def to_json(self):
+        return json.dumps({
+            "type": self.type,
+            "id": self.id,
+            "name": self.name,
+            "last_retrieved": getattr(self, "last_retrieved", None)
+        })
     
     # This carefully fetches the cursor's value from a transactional read.
     # The function is called "stamp" because we're also providing an optimistic

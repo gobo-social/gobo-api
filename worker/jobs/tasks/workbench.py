@@ -1,7 +1,7 @@
 import logging
 import joy
 import models
-import queues
+from tasks import Task
 from . import helpers as h
 from . import notification as Notification
 
@@ -15,6 +15,10 @@ def test(task):
 def workbench(task):
     # identity = models.identity.get(501)
     identity = models.identity.get(454)
-    queues.default.put_details("flow - update identity", {
-        "identity": identity
-    })
+    Task.send(
+        channel = "default",
+        name = "flow - update identity",
+        details = {
+            "identity": identity
+        },
+    )

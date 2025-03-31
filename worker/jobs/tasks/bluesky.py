@@ -1,13 +1,8 @@
 import logging
 import models
 import joy
-import queues
 from clients import parse_mentions, parse_links
 from . import helpers as h
-
-where = models.helpers.where
-build_query = models.helpers.build_query
-QueryIterator = models.helpers.QueryIterator
 
 
 def find_identity(session):

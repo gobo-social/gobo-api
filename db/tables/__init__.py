@@ -19,3 +19,4 @@ from .counter import *
 from .linkedin_session import *
 from .delivery import *
 from .delivery_target import *
+from .channel import *

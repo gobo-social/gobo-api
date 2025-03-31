@@ -86,7 +86,7 @@ def link_put(id):
     link = models.link.update(id, request.json)
     if link == None:
         raise http_errors.unprocessable_content(
-            f"link {id} is not found, create using people post"
+            f"link {id} is not found, create using link post"
         )
     else:
         return {"content": link}

@@ -4,7 +4,7 @@ shards:
       description: The unique identifier for this resource.
       type: integer
 
-  string_id: &string_id
+  address: &address
     id:
       description: The unique identifier for this resource.
       type: string
@@ -62,9 +62,39 @@ shards:
       <<: *linkCore
       <<: *timestamp
 
+  channelCore: &channelCore
+    name:
+      description: The name that describes the family of this channel. Not unique.
+      type: string
+    shards:
+      description: list of shard IDs that this channel is responsible for.
+      type: array
+      item: init
+    paused:
+      description: Flag that indicates if this channel should accept further tasks.
+      type: boolean
+    claimed:
+      description: Flag that indicates if this channel has been claimed by worker node.
+      type: boolean
+    processing:
+      description: Flag that indicates if this channel is being actively processed.
+    sidecar:
+      description: descripton of sidecar tasks to be run at regular intervals.
+      type: array
+      item: object
+
+  channel: &channel
+    type: object
+    additionalProperties: false
+    required: [ name ]
+    properties:
+      <<: *address
+      <<: *channelCore
+      <<: *timestamp
+
   taskCore: &taskCore
-    queue:
-      description: The name of the queue family that should handle this task.
+    channel:
+      description: The name of the channel family that should handle this task.
       type: string
     name:
       description: The name describing this task operation.
@@ -81,7 +111,7 @@ shards:
     additionalProperties: false
     required: [id]
     properties:
-      <<: *id
+      <<: *address
       <<: *taskCore
       <<: *timestamp
 
@@ -648,6 +678,57 @@ resources:
         response:
           status: 204
 
+  channels:
+    template: /channels{?view,direction,per_page,page,name,paused}
+    route: /channels
+    methods:
+      post:
+        request:
+          type: application/json
+          schema:
+            type: object
+            additionalProperties: false
+            required: [ name ]
+            properties: *channelCore
+        response:
+          type: application/json
+          schema: *channel
+          status: 201
+
+      get:
+        request: {}
+        response:
+          type: application/json
+          status: 200
+          schema:
+            type: array
+            items: *channel
+
+
+  channel:
+    template: /channels/{id}
+    route: /channels/<id>
+    methods:
+      get:
+        request: {}
+        response:
+          type: application/json
+          status: 200
+          schema: *channel
+
+      put:
+        request:
+          type: application/json
+          schema: *channel
+        response:
+          type: application/json
+          status: 200
+          schema: *channel
+
+      delete:
+        request: {}
+        response:
+          status: 204
 
   tasks:
     template: /tasks{?view,direction,per_page,page}
