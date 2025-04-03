@@ -1,6 +1,6 @@
 import json
 from typing import Optional
-from sqlalchemy import Integer
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 import joy
 from ..base import Base
@@ -14,8 +14,8 @@ optional = [
 class Filter(Base):
     __tablename__ = "filter"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    person_id: Mapped[int]
+    id: Mapped[str] = mapped_column(String, primary_key=True, insert_default=joy.crypto.address)
+    person_id: Mapped[str]
     category: Mapped[Optional[str]]
     configuration: Mapped[Optional[str]]
     active: Mapped[bool] = mapped_column(insert_default=True)

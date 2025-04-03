@@ -1,5 +1,5 @@
 from typing import Optional
-from sqlalchemy import Integer
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 import joy
 from ..base import Base
@@ -16,9 +16,9 @@ optional = [
 class LinkedinSession(Base):
     __tablename__ = "linkedin_session"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    person_id: Mapped[int]
-    identity_id: Mapped[int]
+    id: Mapped[str] = mapped_column(String, primary_key=True, insert_default=joy.crypto.address)
+    person_id: Mapped[str]
+    identity_id: Mapped[str]
     platform_id: Mapped[Optional[str]]
     access_token: Mapped[Optional[str]]
     access_expires: Mapped[Optional[str]]

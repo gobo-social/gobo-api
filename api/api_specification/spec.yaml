@@ -12,7 +12,7 @@ shards:
   person_id: &person_id
     person_id:
       description: The unique ID for the person that owns this resource.
-      type: integer
+      type: string
 
   timestamp: &timestamp
     created:
@@ -39,13 +39,13 @@ shards:
       type: string
     origin_id:
       description: The unique identifier for the resource.
-      type: integer
+      type: string
     target_type:
       description: The type of resource that represents the target of this edge.
       type: string
     target_id:
       description: The uniuqe identifier for the resource.
-      type: integer
+      type: string
     name:
       description: The name that describes the type of edge between these resources.
       type: string
@@ -58,7 +58,7 @@ shards:
     additionalProperties: false
     required: [ id, origin_type, origin_id, target_type, target_id, name ]
     properties:
-      <<: *id
+      <<: *address
       <<: *linkCore
       <<: *timestamp
 
@@ -69,7 +69,8 @@ shards:
     shards:
       description: list of shard IDs that this channel is responsible for.
       type: array
-      item: init
+      items: 
+        type: integer
     paused:
       description: Flag that indicates if this channel should accept further tasks.
       type: boolean
@@ -81,7 +82,8 @@ shards:
     sidecar:
       description: descripton of sidecar tasks to be run at regular intervals.
       type: array
-      item: object
+      items: 
+        type: object
 
   channel: &channel
     type: object
@@ -99,12 +101,25 @@ shards:
     name:
       description: The name describing this task operation.
       type: string
+    shard:
+      description: The shard id that will process this task
+      type: integer
     priority:
       type: integer
       minimum: 1
     details:
       description: The payload of information relevant to completing this task.
       type: object
+    flow:
+      type: array
+      items: 
+        type: object
+    failure:
+      type: string
+    tries:
+      type: integer
+    visible:
+      type: boolean
 
   task: &task
     type: object
@@ -119,7 +134,7 @@ shards:
   personCore: &personCore
     person_id:
       description: optional representation of the person id.
-      type: integer
+      type: string
     name:
       description: Chosen display name for this person.
       type: string
@@ -132,7 +147,7 @@ shards:
     additionalProperties: false
     required: [ id ]
     properties:
-      <<: *id
+      <<: *address
       <<: *personCore
       <<: *timestamp
 
@@ -147,7 +162,7 @@ shards:
     type: object
     additionalProperties: false
     properties:
-      <<: *id
+      <<: *address
       <<: *storeCore
       <<: *timestamp
 
@@ -181,13 +196,16 @@ shards:
     active:
       description: This flag provides a hint as to the visibility of posts from this identity in certain feeds.
       type: boolean
+    stale:
+      description: This flag provides a hint as to whether the credentials we have available are valid.
+      type: boolean
 
   identity: &identity
     type: object
     additionalProperties: false
     required: [id, person_id, platform, base_url, profile_url, username]
     properties:
-      <<: *id
+      <<: *address
       <<: *identityCore
       <<: *timestamp
 
@@ -213,7 +231,7 @@ shards:
     additionalProperties: false
     required: [id, person_id, platform, base_url]
     properties:
-      <<: *id
+      <<: *address
       <<: *registrationCore
       <<: *timestamp
 
@@ -233,7 +251,7 @@ shards:
     additionalProperties: false
     required: [id, base_url]
     properties:
-      <<: *id
+      <<: *address
       <<: *mastodonClientCore
       <<: *timestamp
 
@@ -254,7 +272,7 @@ shards:
     additionalProperties: false
     required: [ id, person_id ]
     properties:
-      <<: *id
+      <<: *address
       <<: *filterCore
       <<: *timestamp
 
@@ -289,7 +307,7 @@ shards:
     additionalProperties: false
     required: [ id, platform ]
     properties:
-      <<: *id
+      <<: *address
       <<: *sourceCore
       <<: *timestamp
 
@@ -298,7 +316,7 @@ shards:
     <<: *platform
     source_id:
       description: The unique ID of the source for this post.
-      type: integer
+      type: string
     base_url:
       description: The base URL for the platform that hosts this post.
       type: string
@@ -332,7 +350,7 @@ shards:
     additionalProperties: false
     required: [ id, platform ]
     properties:
-      <<: *id
+      <<: *address
       <<: *postCore
       <<: *timestamp
 
@@ -342,7 +360,7 @@ shards:
       type: string
     person_id:
       description: The ID of the person this draft file is associated with.
-      type: integer
+      type: string
     mime_type:
       description: MIME type of this file
       type: string
@@ -375,7 +393,7 @@ shards:
   draftCore: &draftCore
     person_id:
       description: The ID of the person this draft is associated with.
-      type: integer
+      type: string
     state:
       description: The current state of the draft to model its internal process flow.
       type: string
@@ -389,14 +407,14 @@ shards:
     additionalProperties: false
     required: [ id, person_id, store ]
     properties:
-      <<: *id
+      <<: *address
       <<: *draftCore
       <<: *timestamp
 
   proofCore: &proofCore
     person_id:
       description: The ID of the person associated with this proof.
-      type: integer
+      type: string
     title:
       description: The title of the to-be-published post.
       type: string
@@ -423,20 +441,20 @@ shards:
     additionalProperties: false
     required: [ id, person_id, content, files ]
     properties:
-      <<: *id
+      <<: *address
       <<: *proofCore
       <<: *timestamp
 
   deliveryTargetCore: &deliveryTargetCore         
     person_id:
       description: The ID of the person associated with this delivery target.
-      type: integer
+      type: string
     identity_id:
       description: The ID of the target identity Gobo is trying to submit to.
-      type: integer
+      type: string
     delivery_id:
       description: The ID of delivery this target is associated with.
-      type: integer
+      type: string
     state:
       description: The current state of the submission process.
       type: string
@@ -449,32 +467,32 @@ shards:
     additionalProperties: false
     required: [ id, person_id, identity, state ]
     properties:
-      <<: *id
+      <<: *address
       <<: *deliveryTargetCore
       <<: *timestamp
 
   deliveryCore: &deliveryCore
     person_id:
       description: The ID of the person this delivery is associated with.
-      type: integer
+      type: string
     draft_id:
       description: The ID of the draft associated with this delivery.
-      type: integer
+      type: string
     proof_id:
       description: The ID of the proof associated with this delivery.
-      type: integer
+      type: string
     targets:
       description: List of IDs referencing delivery targets associated with this delivery.
       type: array
       items:
-        type: integer
+        type: string
 
   delivery: &delivery
     type: object
     additionalProperties: false
     required: [ id, person_id, draft_id, files, targets ]
     properties:
-      <<: *id
+      <<: *address
       <<: *deliveryCore
       <<: *timestamp
   
@@ -488,7 +506,7 @@ shards:
         description: List of delivery IDs, sorted in reverse chronological order.
         type: array
         items:
-          type: integer
+          type: string
       deliveries:
         description: List of delivery resources associated with this graph.
         type: array
@@ -521,7 +539,7 @@ shards:
     properties:
       delivery_id:
         description: The ID of the associated delivery resource used to orchestrate platform integrations.
-        type: integer
+        type: string
       targets:
         type: array
         minItems: 1
@@ -532,7 +550,7 @@ shards:
           properties:
             identity:
               description: The ID of the target identity. GOBO will create a post on your behalf with this provider.
-              type: integer
+              type: string
             stash:
               description: Platform specific configuration needed to create this post. For example, a target subreddit.
               type: array
@@ -545,7 +563,7 @@ shards:
   goboKeyCore: &goboKeyCore
     person_id:
       description: The ID of the person to whom this key is assigned.
-      type: integer
+      type: string
     key:
       description: The value of this key.
       type: string
@@ -555,7 +573,7 @@ shards:
     additionalProperties: false
     required: [ id ]
     properties:
-      <<: *id
+      <<: *address
       <<: *goboKeyCore
       <<: *timestamp
 
@@ -578,10 +596,10 @@ shards:
       type: string
     source_id:
       description: The unique Gobo ID of the source associated with this notification.
-      type: integer
+      type: string
     post_id:
       description: The unique Gobo ID of the post associated with this notification.
-      type: integer
+      type: string
     active:
       description: Describes whether this notification is unread or has been dismissed.
       type: boolean
@@ -591,14 +609,14 @@ shards:
     additionalProperties: false
     required: [ id, platform ]
     properties:
-      <<: *id
+      <<: *address
       <<: *notificationCore
       <<: *timestamp
 
   notificationCountCore: &notificationCountCore
     person_id:
       description: The unique Gobo ID of the person to whom this notification count belongs.
-      type: integer
+      type: string
     count:
       description: The current estimated count of unread notifications belonging to this person across all their identities.
       type: integer
@@ -655,7 +673,7 @@ resources:
 
   link:
     template: /links/{id}
-    route: /links/<int:id>
+    route: /links/<id>
     methods:
       get:
         request: {}
@@ -758,7 +776,7 @@ resources:
 
   task:
     template: /tasks/{id}
-    route: /tasks/<int:id>
+    route: /tasks/<id>
     methods:
       get:
         request: {}
@@ -810,7 +828,7 @@ resources:
 
   person:
     template: /people/{id}
-    route: /people/<int:id>
+    route: /people/<id>
     methods:
       get:
         request: {}
@@ -863,7 +881,7 @@ resources:
 
   identity:
     template: /identities/{id}
-    route: /identities/<int:id>
+    route: /identities/<id>
     methods:
       get:
         request: {}
@@ -915,7 +933,7 @@ resources:
 
   registration:
     template: /registrations/{id}
-    route: /registrations/<int:id>
+    route: /registrations/<id>
     methods:
       get:
         request: {}
@@ -967,7 +985,7 @@ resources:
 
   mastodon_client:
     template: /mastodon_clients/{id}
-    route: /mastodon_clients/<int:id>
+    route: /mastodon_clients/<id>
     methods:
       get:
         request: {}
@@ -1018,7 +1036,7 @@ resources:
 
   filter:
     template: /filters/{id}
-    route: /filters/<int:id>
+    route: /filters/<id>
     methods:
       get:
         request: {}
@@ -1069,7 +1087,7 @@ resources:
 
   source:
     template: /source/{id}
-    route: /source/<int:id>
+    route: /source/<id>
     methods:
       get:
         request: {}
@@ -1120,7 +1138,7 @@ resources:
 
   post:
     template: /post/{id}
-    route: /post/<int:id>
+    route: /post/<id>
     methods:
       get:
         request: {}
@@ -1194,7 +1212,7 @@ resources:
 
   gobo_key:
     template: /gobo-keys/{id}
-    route: /gobo-keys/<int:id>
+    route: /gobo-keys/<id>
     methods:
       get:
         request: {}
@@ -1219,7 +1237,7 @@ resources:
 
   person_profile:
     template: /people/{person_id}/person
-    route: /people/<int:person_id>/person
+    route: /people/<person_id>/person
     methods:
       get:
         request:
@@ -1243,7 +1261,7 @@ resources:
 
   person_store:
     template: /people/{person_id}/stores/{name}
-    route: /people/<int:person_id>/stores/<name>
+    route: /people/<person_id>/stores/<name>
     methods:
       get:
         request:
@@ -1272,7 +1290,7 @@ resources:
 
   person_identities:
     template: /people/{person_id}/identities{?per_page,page}
-    route: /people/<int:person_id>/identities
+    route: /people/<person_id>/identities
     methods:
       get:
         request:
@@ -1288,7 +1306,7 @@ resources:
 
   person_identity:
     template: /people/{person_id}/identities/{id}
-    route: /people/<int:person_id>/identities/<int:id>
+    route: /people/<person_id>/identities/<id>
     methods:
       post:
         request:
@@ -1326,7 +1344,7 @@ resources:
 
   person_filters:
     template: /people/{person_id}/filters{?per_page,page}
-    route: /people/<int:person_id>/filters
+    route: /people/<person_id>/filters
     methods:
       get:
         request:
@@ -1357,7 +1375,7 @@ resources:
 
   person_filter:
     template: /people/{person_id}/filters/{id}
-    route: /people/<int:person_id>/filters/<int:id>
+    route: /people/<person_id>/filters/<id>
     methods:
       put:
         request:
@@ -1379,7 +1397,7 @@ resources:
 
   person_identity_feed:
     template: /people/{person_id}/identities/{id}/feed{?per_page,start}
-    route: /people/<int:person_id>/identities/<int:id>/feed
+    route: /people/<person_id>/identities/<id>/feed
     methods:
       get:
         request:
@@ -1398,7 +1416,7 @@ resources:
                 description: Array of ordered post IDs for this feed. The order depends on the feed being requested.
                 type: array
                 items:
-                  type: integer
+                  type: string
               posts:
                 description: List of posts that appear somewhere in this feed segment.
                 type: array
@@ -1409,21 +1427,21 @@ resources:
                 items:
                   type: array
                   items:
-                    type: integer
+                    type: string
               shares:
                 description: List of post references that have share relationships.
                 type: array
                 items:
                   type: array
                   items:
-                    type: integer
+                    type: string
               threads:
                 description: List of post references that have thread relationships.
                 type: array
                 items:
                   type: array
                   items:
-                    type: integer
+                    type: string
               sources:
                 description: List of sources that appear somewhere in this feed segment.
                 type: array
@@ -1434,7 +1452,7 @@ resources:
 
   person_identity_post:
     template: /people/{person_id}/identities/{identity_id}/post/{id}
-    route: /people/<int:person_id>/identities/<int:identity_id>/post/<int:id>
+    route: /people/<person_id>/identities/<identity_id>/post/<id>
     methods:
       get:
         request:
@@ -1453,7 +1471,7 @@ resources:
                 description: Array of ordered post IDs for this feed.
                 type: array
                 items:
-                  type: integer
+                  type: string
               posts:
                 description: List of posts that appear somewhere in this feed segment.
                 type: array
@@ -1464,21 +1482,21 @@ resources:
                 items:
                   type: array
                   items:
-                    type: integer
+                    type: string
               shares:
                 description: List of post references that have share relationships.
                 type: array
                 items:
                   type: array
                   items:
-                    type: integer
+                    type: string
               threads:
                 description: List of post references that have thread relationships to this post.
                 type: array
                 items:
                   type: array
                   items:
-                    type: integer
+                    type: string
               sources:
                 description: List of sources that appear somewhere in this feed segment.
                 type: array
@@ -1486,7 +1504,7 @@ resources:
 
   person_draft_files:
     template: /people/{person_id}/draft-files
-    route: /people/<int:person_id>/draft-files
+    route: /people/<person_id>/draft-files
     methods:
       post:
         request:
@@ -1507,7 +1525,7 @@ resources:
 
   person_draft_file:
     template: /people/{person_id}/draft-files/{id}
-    route: /people/<int:person_id>/draft-files/<id>
+    route: /people/<person_id>/draft-files/<id>
     methods:
       post:
         description: "Accepts mutlipart upload of file. Form fields are 'file', 'name', and 'alt'."
@@ -1544,7 +1562,7 @@ resources:
 
   person_drafts:
     template: /people/{person_id}/drafts
-    route: /people/<int:person_id>/drafts
+    route: /people/<person_id>/drafts
     methods:
       post:
         request:
@@ -1563,7 +1581,7 @@ resources:
 
   person_draft:
     template: /people/{person_id}/drafts/{id}
-    route: /people/<int:person_id>/drafts/<int:id>
+    route: /people/<person_id>/drafts/<id>
     methods:
       put:
         request:
@@ -1584,7 +1602,7 @@ resources:
 
   person_proofs:
     template: /people/{person_id}/proofs
-    route: /people/<int:person_id>/proofs
+    route: /people/<person_id>/proofs
     methods:
       post:
         request:
@@ -1603,7 +1621,7 @@ resources:
 
   person_draft:
     template: /people/{person_id}/proofs/{id}
-    route: /people/<int:person_id>/proofs/<int:id>
+    route: /people/<person_id>/proofs/<id>
     methods:
       put:
         request:
@@ -1624,7 +1642,7 @@ resources:
 
   person_delivery_target:
     template: /people/{person_id}/delivery-targets/{id}
-    route: /people/<int:person_id>/delivery-targets/<int:id>
+    route: /people/<person_id>/delivery-targets/<id>
     methods:
       get:
         request:
@@ -1652,7 +1670,7 @@ resources:
 
   person_deliveries:
     template: /people/{person_id}/deliveries{?per_page,start}
-    route: /people/<int:person_id>/deliveries
+    route: /people/<person_id>/deliveries
     methods:
       post:
         request:
@@ -1666,10 +1684,10 @@ resources:
             properties:
               draft_id:
                 description: The ID of the draft to associate with this delivery.
-                type: integer
+                type: string
               proof_id:
                 description: The ID of the proof to associate with this delivery.
-                type: integer
+                type: string
         response:
           status: 201
           type: application/json
@@ -1687,7 +1705,7 @@ resources:
 
   person_delivery:
     template: /people/{person_id}/deliveries/{id}
-    route: /people/<int:person_id>/deliveries/<int:id>
+    route: /people/<person_id>/deliveries/<id>
     methods:
       get:
         request:
@@ -1715,7 +1733,7 @@ resources:
 
   person_posts:
     template: /people/{person_id}/posts
-    route: /people/<int:person_id>/posts
+    route: /people/<person_id>/posts
     methods:
       post:
         request:
@@ -1730,7 +1748,7 @@ resources:
 
   person_post_edge:
     template: /people/{person_id}/post-edges/{identity_id}/{post_id}/{name}
-    route: /people/<int:person_id>/post-edges/<int:identity_id>/<int:post_id>/<name>
+    route: /people/<person_id>/post-edges/<identity_id>/<post_id>/<name>
     methods:
       put:
         request:
@@ -1748,7 +1766,7 @@ resources:
 
   person_notifications:
     template: /people/{person_id}/identities/{id}/notifications{?per_page,start,view}
-    route: /people/<int:person_id>/identities/<int:id>/notifications
+    route: /people/<person_id>/identities/<id>/notifications
     methods:
       get:
         request:
@@ -1767,7 +1785,7 @@ resources:
                 description: Array of ordered notification IDs for this feed.
                 type: array
                 items:
-                  type: integer
+                  type: string
               notifications:
                 description: List of notifications that appear somewhere in this feed segment.
                 type: array
@@ -1782,14 +1800,14 @@ resources:
                 items:
                   type: array
                   items:
-                    type: integer
+                    type: string
               shares:
                 description: List of post references that have share relationships.
                 type: array
                 items:
                   type: array
                   items:
-                    type: integer
+                    type: string
               sources:
                 description: List of sources that appear somewhere in this feed segment.
                 type: array
@@ -1801,7 +1819,7 @@ resources:
 
   person_notification:
     template: /people/{person_id}/identities/{identity_id}/notifications/{id}
-    route: /people/<int:person_id>/identities/<int:identity_id>/notifications/<int:id>
+    route: /people/<person_id>/identities/<identity_id>/notifications/<id>
     methods:
       post:
         request:
@@ -1815,7 +1833,7 @@ resources:
 
   person_notification_count:
     template: /people/{person_id}/notification-count
-    route: /people/<int:person_id>/notification-count
+    route: /people/<person_id>/notification-count
     methods:
       get:
         request:
@@ -1913,7 +1931,7 @@ resources:
 
   action_resend_email_verification:
     template: /actions/people/{person_id}/resend-email-verification
-    route: /actions/people/<int:person_id>/resend-email-verification
+    route: /actions/people/<person_id>/resend-email-verification
     methods:
       post:
         request:

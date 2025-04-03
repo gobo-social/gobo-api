@@ -47,7 +47,7 @@ def _parse_link_query(parameters, args):
         if value != None:
             parameters["where"].append({
                 "key": "origin_id",
-                "value": int(value),
+                "value": value,
                 "operator": "eq"
             })
     except Exception as e:
@@ -58,7 +58,7 @@ def _parse_link_query(parameters, args):
         if value != None:
             parameters["where"].append({
                 "key": "target_id",
-                "value": int(value),
+                "value": value,
                 "operator": "eq"
             })
     except Exception as e:

@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from sqlalchemy import Integer
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 import joy
 from ..base import Base
@@ -13,7 +13,7 @@ optional = [
 class Person(Base):
     __tablename__ = "person"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, insert_default=joy.crypto.address)
     authority_id: Mapped[Optional[str]]
     name: Mapped[Optional[str]]
     created: Mapped[str] = mapped_column(insert_default=joy.time.now)

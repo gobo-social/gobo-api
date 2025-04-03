@@ -1,6 +1,6 @@
 import json
 from typing import Optional
-from sqlalchemy import Integer
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 import joy
 from ..base import Base
@@ -20,8 +20,8 @@ optional = [
 class Post(Base):
     __tablename__ = "post"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    source_id: Mapped[int]
+    id: Mapped[str] = mapped_column(String, primary_key=True, insert_default=joy.crypto.address)
+    source_id: Mapped[str]
     base_url: Mapped[Optional[str]]
     platform: Mapped[Optional[str]]
     platform_id: Mapped[Optional[str]]

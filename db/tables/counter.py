@@ -1,6 +1,6 @@
 import logging
 from typing import Optional
-from sqlalchemy import Integer
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 import joy
 from ..base import Base
@@ -18,11 +18,11 @@ optional = [
 class Counter(Base):
     __tablename__ = "counter"
 
-    id: Mapped[str] = mapped_column(Integer, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, insert_default=joy.crypto.address)
     origin_type: Mapped[Optional[str]]
-    origin_id: Mapped[Optional[int]]
+    origin_id: Mapped[Optional[str]]
     target_type: Mapped[Optional[str]]
-    target_id: Mapped[Optional[int]]
+    target_id: Mapped[Optional[str]]
     name: Mapped[Optional[str]]
     secondary: Mapped[int] = mapped_column(insert_default=0)
     created: Mapped[str] = mapped_column(insert_default=joy.time.now)

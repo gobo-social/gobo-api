@@ -1,5 +1,5 @@
 from typing import Optional
-from sqlalchemy import Integer
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 import joy
 from ..base import Base
@@ -19,9 +19,9 @@ optional = [
 class BlueskySession(Base):
     __tablename__ = "bluesky_session"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    person_id: Mapped[int]
-    identity_id: Mapped[Optional[int]]
+    id: Mapped[str] = mapped_column(String, primary_key=True, insert_default=joy.crypto.address)
+    person_id: Mapped[str]
+    identity_id: Mapped[Optional[str]]
     base_url: Mapped[Optional[str]]
     handle: Mapped[Optional[str]]
     did: Mapped[Optional[str]]

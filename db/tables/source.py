@@ -1,5 +1,5 @@
 from typing import Optional
-from sqlalchemy import Integer
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 import joy
 from ..base import Base
@@ -18,7 +18,7 @@ optional = [
 class Source(Base):
     __tablename__ = "source"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[str] = mapped_column(String, primary_key=True, insert_default=joy.crypto.address)
     platform: Mapped[Optional[str]]
     platform_id: Mapped[str]
     base_url: Mapped[Optional[str]]

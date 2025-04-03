@@ -1,7 +1,7 @@
 import logging
 import json
 from typing import Optional
-from sqlalchemy import Integer, String
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 import joy
 from ..base import Base
@@ -15,8 +15,8 @@ optional = [
 class Draft(Base):
     __tablename__ = "draft"
 
-    id: Mapped[str] = mapped_column(Integer, primary_key=True)
-    person_id: Mapped[int]
+    id: Mapped[str] = mapped_column(String, primary_key=True, insert_default=joy.crypto.address)
+    person_id: Mapped[str]
     state: Mapped[Optional[str]]
     store: Mapped[Optional[str]]
     created: Mapped[str] = mapped_column(insert_default=joy.time.now)
