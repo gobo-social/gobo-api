@@ -10,6 +10,9 @@ QueryIterator = models.helpers.QueryIterator
 FLAG_LATENCY = int(environ.get("FLAG_LATENCY", 60))
 cache = {}
 
+# This allows us to estimate how many shards are available so we can dynamically
+# distribute tasks to the available shards. However this algorithm only counts
+# the total shards. We'd want to consider other options in the future.
 def get_counts():
     channels = QueryIterator(model = models.channel)
     seen = set()
@@ -17,9 +20,9 @@ def get_counts():
     for channel in channels:
         name = channel["name"]
         seen.add(name)
-        if channel["paused"]:
+        if not channel["processing"]:
             continue
-        value = channel.get(name, 0)
+        value = counts.get(name, 0)
         counts[name] = value + len(channel["shards"])
     
     # This allows us to gracefully gather tasks if we are otherwise unable to

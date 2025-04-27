@@ -56,7 +56,7 @@ if channel is None:
    quit()
 
 # The watcher will poll the channel registry and look for changes to the
-# channel configuration. Right now, it's focused on the paused flag.
+# channel configuration. Right now, it's focused on the processing flag.
 watcher = threading.Thread(target = channel.watch)
 watcher.start()
 

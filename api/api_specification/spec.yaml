@@ -697,7 +697,7 @@ resources:
           status: 204
 
   channels:
-    template: /channels{?view,direction,per_page,page,name,paused}
+    template: /channels{?view,direction,per_page,page,name}
     route: /channels
     methods:
       post:

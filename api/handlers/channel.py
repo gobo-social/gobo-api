@@ -12,14 +12,6 @@ def _parse_channel_query(parameters, args):
             "value": value,
             "operator": "eq"
         })
-    
-    value = args.get("paused")
-    if value != None:
-        parameters["where"].append({
-            "key": "paused",
-            "value": value,
-            "operator": "eq"
-        })
 
 def channels_get():
     views = ["created"]
