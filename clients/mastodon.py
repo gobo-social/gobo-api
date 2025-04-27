@@ -63,7 +63,7 @@ class Status():
         if self.url is None and self.reblog is not None:
             self.url = self.reblog.url
         if self.url is not None and self.url.endswith("/activity"):
-            self.url = re.sub("\/activity$", "", self.url)
+            self.url = re.sub("/activity$", "", self.url)
 
         if _.card is not None:
             self.attachments.append({

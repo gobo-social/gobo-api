@@ -336,7 +336,7 @@ class Reddit():
         output["id"] = f"t3_{raw_id}"
         
         url = Reddit.BASE_URL
-        url += "/"
+        url += "/r/"
         url += subreddit
         url += "/comments/"
         url += raw_id
