@@ -39,6 +39,25 @@ config.dictConfig({
     }
 })
 
+# Prepare exit handler that will attempt to release the channel
+import atexit
+import signal
+import sys
+
+def signal_handler(sig, frame):
+    print('You pressed Ctrl+C!')
+    sys.exit(0)
+
+
+channel = None
+def exit_handler():
+    if channel is not None:
+        channel.release()
+
+atexit.register(exit_handler)
+signal.signal(signal.SIGTERM, exit_handler)
+
+
 
 # Establish worker queues and threads that drive its work.
 import threading

@@ -42,6 +42,10 @@ class Channel():
                 node_array.enqueue(tasks)
             else:
                 time.sleep(2)
+
+    def release(self):
+        logging.info(f"releasing channel {self.id} from this worker.")
+        models.channel.release(self.id)
     
     def receive(self, limit):
         return models.task.receive(self, limit)

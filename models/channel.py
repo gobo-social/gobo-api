@@ -31,3 +31,19 @@ def claim():
         row.update(data)
         session.commit()
         return row.to_dict()
+    
+def release(id):
+    with Session() as session:
+        statement = select(Channel) \
+            .where(Channel.id == id) \
+            .limit(1) \
+            .with_for_update(nowait = False)
+
+        row = session.scalars(statement).first() 
+         
+        # Release this channel for another worker.
+        data = row.to_dict()
+        data["claimed"] = False
+        row.update(data)
+        session.commit()
+        return row.to_dict()
