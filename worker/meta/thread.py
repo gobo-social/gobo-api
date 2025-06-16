@@ -1,5 +1,7 @@
 import logging
 import threading
+import itertools
+import gc
 
 # TODO: Consider recovery and dead-letter states.
 def fail_task(queue, task, error):
@@ -26,11 +28,13 @@ def fail_task(queue, task, error):
 
 
 
+# Will return True every N invocations, can be used indefinitely.
+shouldCollect = itertools.cycle([False] * 49 + [True])
 
 def thread_core(queue, dispatch):
     while True:
+        task = queue.get()
         try:
-            task = queue.get()
             task.start(queue)
             result = dispatch(task)
             task.finish(queue)
@@ -38,8 +42,11 @@ def thread_core(queue, dispatch):
             task.remove()
         except Exception as e:
             fail_task(queue, task, e)
-
-        queue.task_done()
+        finally:
+            queue.task_done()
+            del task    
+            if next(shouldCollect):
+                gc.collect()
  
 
 # We weave Python's thread and queue features to spread our workload while

@@ -76,7 +76,10 @@ class GOBOBluesky():
         # This shouldn't happen, but we don't have good recourse if it's not here.
         reset = response.headers.get("ratelimit-reset")
         if reset is None:
-            raise Exception("Bluesky: got 429 response, but without ratelimit-reset header guidance")
+            seconds = 305
+            logging.warning(f"Bluesky: got 429 response, but don't recognize guidance ratelimit-reset guidance. Waiting for {seconds} seconds.")
+            time.sleep(seconds)
+            return
 
         seconds = self.get_wait_timeout(reset)
         logging.warning(f"Bluesky: got 429 response. Waiting for {seconds} seconds.")

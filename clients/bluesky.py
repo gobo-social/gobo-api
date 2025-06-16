@@ -531,7 +531,7 @@ class Notification():
             author = self.author.to_dict()
         post = None
         if self.post:
-            post = post.to_dict()
+            post = self.post.to_dict()
 
         return {
             "id": self.id,

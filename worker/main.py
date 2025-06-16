@@ -50,7 +50,7 @@ def signal_handler(sig, frame):
 
 
 channel = None
-def exit_handler():
+def exit_handler(*args):
     if channel is not None:
         channel.release()
 
