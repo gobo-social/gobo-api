@@ -633,6 +633,9 @@ class Bluesky():
         self.frame = SessionFrame(self.identity)
         self.freshen()
 
+    def close(self):
+        pass
+
     def freshen(self):
         if self.frame.refresh_expired():
             self.frame.cycle_refresh_token()

@@ -287,6 +287,9 @@ class Mastodon():
             access_token = self.identity.get("oauth_token")
         )
 
+    def close(self):
+        self.client.session.close()
+
     def get_redirect_url(self, state):
         return self.client.auth_request_url(
             redirect_uris = environ.get("OAUTH_CALLBACK_URL"),
@@ -489,7 +492,7 @@ class Mastodon():
             notifications.append({
                 "platform": notification["account"]["platform"],
                 "platform_id": notification["id"],
-                "base_url": self["base_url"],
+                "base_url": self.base_url,
                 "type": notification["type"],
                 "notified": notification["created"],
                 "active": notification["active"],

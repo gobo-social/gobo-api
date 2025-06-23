@@ -44,7 +44,7 @@ def thread_core(queue, dispatch):
             fail_task(queue, task, e)
         finally:
             queue.task_done()
-            del task    
+            del task
             if next(shouldCollect):
                 gc.collect()
  

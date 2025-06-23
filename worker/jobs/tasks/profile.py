@@ -7,6 +7,7 @@ from . import helpers as h
 def get_profile(task):
     client = h.get_client(task)
     profile = client.get_profile_dict()
+    client.close()
     return {"profile": profile}
 
 # No stale protection needed for unconnected client.

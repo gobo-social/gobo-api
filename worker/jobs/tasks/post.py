@@ -19,6 +19,7 @@ def pull_posts(task):
         last_retrieved = last_retrieved, 
         is_shallow = is_shallow
     )
+    client.close()
     # Special case for early returns.
     if graph == False:
         task.halt()

@@ -40,6 +40,7 @@ def get_source_cursor(task):
 def pull_sources(task):
     client = h.get_client(task)
     graph = client.list_sources()
+    client.close()
     return {"graph": graph}
 
 

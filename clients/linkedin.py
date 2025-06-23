@@ -94,6 +94,9 @@ class Linkedin():
         self.client = GoboLinkedin()
         self.invalid = False
         return self.client.login(self.me)
+    
+    def close(self):
+        pass
 
     def get_profile(self):
         return self.client.get_userinfo(self.me)

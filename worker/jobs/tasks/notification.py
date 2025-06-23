@@ -29,6 +29,7 @@ def pull_notifications(task):
     cursor = h.get_cursor(task)
     last_retrieved = cursor.last_retrieved
     graph = client.list_notifications({"last_retrieved": last_retrieved})
+    client.close()
     return {"graph": graph}
 
 # No stale protection needed for unconnected client.
@@ -102,3 +103,4 @@ def dismiss_notification(task):
         logging.warn(f"cannot dismiss notification {id} because it was not found")
     
     client.dismiss_notification(notification)
+    client.close()
