@@ -31,7 +31,7 @@ def convert(start, end, value, optional = False):
     elif start == "iso":
         d = datetime.fromisoformat(value)
     elif start == "unix":
-        d = datetime.fromtimestamp(value)
+        d = datetime.fromtimestamp(value, timezone.utc)
     else:
         raise Exception(f"unsupported start encoding {start}")
 

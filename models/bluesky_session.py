@@ -27,9 +27,13 @@ def upsert(data):
         if row is None:
             row = BlueskySession.write(data)
             session.add(row)
+            session.flush()
+            out = row.to_dict()
             session.commit()
-            return row.to_dict()
+            return out
         else:
             row.update(data)
+            session.flush()
+            out = row.to_dict()
             session.commit()
-            return row.to_dict()
+            return out

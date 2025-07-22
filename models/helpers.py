@@ -98,8 +98,10 @@ def define_crud(Table):
         with Session() as session:
             row = Table.write(data)
             session.add(row)
+            session.flush()
+            out = row.to_dict()
             session.commit()
-            return row.to_dict()
+            return out
 
     def get(id):
         with Session() as session:
@@ -116,8 +118,10 @@ def define_crud(Table):
                 return None
             else:
                 row.update(data)
+                session.flush()
+                out = row.to_dict()
                 session.commit()
-                return row.to_dict()
+                return out
 
     def remove(id):
         with Session() as session:
@@ -125,9 +129,10 @@ def define_crud(Table):
             if row == None:
                 return None
             else:
+                out = row.to_dict()
                 session.delete(row)
                 session.commit()
-                return row.to_dict()
+                return out
 
     def query(data):
         with Session() as session:

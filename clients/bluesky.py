@@ -53,7 +53,7 @@ def is_repost(data):
     return True
 
 def json_failure(value):
-    logging.info(vars(value))
+    logging.warning(vars(value))
     return "Unable to stringify this value"
 
 parse_uri_regex = re.compile(r"at\:\/\/(.*)\/app\.bsky\.feed\.(?:post|like|repost)\/(.+)$")
@@ -90,10 +90,10 @@ def build_post(data):
         # logging.info(json.dumps(data, indent = 2, default = json_failure))
         return Post.create(_data)
     except Exception as e:
-        logging.error(e, exc_info=True)
-        logging.error("\n\n")
-        logging.error(json.dumps(data, indent = 2, default = json_failure))
-        logging.error("\n\n")
+        logging.warning(e, exc_info=True)
+        logging.warning("\n\n")
+        logging.warning(json.dumps(data, indent = 2, default = json_failure))
+        logging.warning("\n\n")
         return None
     
 def build_thread(data):
@@ -101,10 +101,10 @@ def build_thread(data):
         # logging.info(json.dumps(data, indent = 2, default = json_failure))
         return Post.create_thread(data["thread"])
     except Exception as e:
-        logging.error(e, exc_info=True)
-        logging.error("\n\n")
-        logging.error(json.dumps(data, indent = 2, default = json_failure))
-        logging.error("\n\n")
+        logging.warning(e, exc_info=True)
+        logging.warning("\n\n")
+        logging.warning(json.dumps(data, indent = 2, default = json_failure))
+        logging.warning("\n\n")
         return []
 
 
@@ -492,10 +492,10 @@ def build_notification(item, is_active):
     try:
         return Notification(item, is_active)
     except Exception as e:
-        logging.error(e, exc_info=True)
-        logging.error("\n\n")
-        logging.error(item)
-        logging.error("\n\n")
+        logging.warning(e, exc_info=True)
+        logging.warning("\n\n")
+        logging.warning(item)
+        logging.warning("\n\n")
         return None
 
 class Notification():
@@ -1096,7 +1096,7 @@ class Bluesky():
         
         # Special case for sources with invalid handles. Needs more work.
         if source["username"] == "handle.invalid":
-            logging.warn("Bluesky get_post_graph: source has 'handle.invalid' username")
+            logging.warning("Bluesky get_post_graph: source has 'handle.invalid' username")
             return False
         
         # Special check to make sure that if our client was waiting in the

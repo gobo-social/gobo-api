@@ -100,7 +100,7 @@ def dismiss_notification(task):
     
     notification = models.notification.get(id)
     if notification is None:
-        logging.warn(f"cannot dismiss notification {id} because it was not found")
+        logging.warning(f"cannot dismiss notification {id} because it was not found")
     
     client.dismiss_notification(notification)
     client.close()

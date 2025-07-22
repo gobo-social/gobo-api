@@ -46,12 +46,16 @@ def upsert(data):
         if row == None:
             row = Link.write(data)
             session.add(row)
+            session.flush()
+            out = row.to_dict()
             session.commit()
-            return row.to_dict()
+            return out
         else:
             row.update(data)
+            session.flush()
+            out = row.to_dict()
             session.commit()
-            return row.to_dict()
+            return out
   
 
 def find_and_remove(data):
@@ -66,9 +70,10 @@ def find_and_remove(data):
         if row == None:
             return None
         else:
+            out = row.to_dict()
             session.delete(row)
             session.commit()
-            return row.to_dict()
+            return out
 
 
 class Lockout():

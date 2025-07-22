@@ -7,6 +7,14 @@ import httpx
 import joy
 from .http_error import HTTPError
 
+def is_int(value):
+    try:
+        int(value)
+        return True
+    except:
+        return False
+    
+DEFAULT_TIMEOUT = 305
 
 class GOBOBluesky():
     def __init__(self):
@@ -41,15 +49,15 @@ class GOBOBluesky():
     #     they might switch this randomly.
     def get_wait_timeout(self, reset):
         reset = joy.time.convert("unix", "date", reset)
-        now = joy.time.nowdate
-        return (now - reset).total_seconds() + 1
+        now = joy.time.nowdate()
+        return round(abs((now - reset).total_seconds())) + 1
 
 
     def handle_ratelimit(self, url, response):
         remaining = response.headers.get("ratelimit-remaining")
         reset = response.headers.get("ratelimit-reset")
 
-        if remaining is None:
+        if not is_int(remaining):
             return
         if int(remaining) > 1:
             logging.info({
@@ -59,7 +67,13 @@ class GOBOBluesky():
             })
             return
         
-        seconds = self.get_wait_timeout(reset)
+        if not is_int(reset):
+            seconds = DEFAULT_TIMEOUT
+            logging.warning(f"Bluesky: proactively slowing to avoid ratelimit. No guidance, so waiting for {seconds} seconds")
+            time.sleep(seconds)
+            return
+        
+        seconds = self.get_wait_timeout(int(reset))
         logging.warning(f"Bluesky: proactively slowing to avoid ratelimit. Waiting for {seconds} seconds")
         time.sleep(seconds)
     
@@ -75,13 +89,13 @@ class GOBOBluesky():
         })
         # This shouldn't happen, but we don't have good recourse if it's not here.
         reset = response.headers.get("ratelimit-reset")
-        if reset is None:
-            seconds = 305
+        if not is_int(reset):
+            seconds = DEFAULT_TIMEOUT
             logging.warning(f"Bluesky: got 429 response, but don't recognize guidance ratelimit-reset guidance. Waiting for {seconds} seconds.")
             time.sleep(seconds)
             return
 
-        seconds = self.get_wait_timeout(reset)
+        seconds = self.get_wait_timeout(int(reset))
         logging.warning(f"Bluesky: got 429 response. Waiting for {seconds} seconds.")
         time.sleep(seconds)
 

@@ -26,8 +26,10 @@ def lookup(authority_id):
         if row == None:
             row = Person(authority_id=authority_id)
             session.add(row)
+            session.flush()
+            out = row.to_dict()
             session.commit()
-            return row.to_dict()
+            return out
         else:
             return row.to_dict()
 

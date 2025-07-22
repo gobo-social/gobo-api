@@ -22,10 +22,10 @@ def build_status(item):
         return status
     
     except Exception as e:
-        logging.error(e, exc_info=True)
-        logging.error("\n\n")
-        logging.error(item)
-        logging.error("\n\n")
+        logging.warning(e, exc_info=True)
+        logging.warning("\n\n")
+        logging.warning(item)
+        logging.warning("\n\n")
         return None
     
 def build_partial_status(item):
@@ -65,13 +65,14 @@ class Status():
         if self.url is not None and self.url.endswith("/activity"):
             self.url = re.sub("/activity$", "", self.url)
 
-        if _.card is not None:
+        card = getattr(_, "card", None)
+        if card is not None:
             self.attachments.append({
                 "type": "application/json+gobo-syndication",
-                "source": _.card["url"],
-                "title": _.card["title"],
-                "description": _.card["description"],
-                "media": _.card.get("image", None)
+                "source": card.get("url", ""),
+                "title": card.get("title", ""),
+                "description": card.get("description", ""),
+                "media": card.get("image", None)
             })
 
         for attachment in _.media_attachments:
@@ -176,10 +177,10 @@ def build_notification(item, is_active):
     try:
         return Notification(item, is_active)
     except Exception as e:
-        logging.error(e, exc_info=True)
-        logging.error("\n\n")
-        logging.error(item)
-        logging.error("\n\n")
+        logging.warning(e, exc_info=True)
+        logging.warning("\n\n")
+        logging.warning(item)
+        logging.warning("\n\n")
         return None
 
 class Notification():
@@ -288,7 +289,9 @@ class Mastodon():
         )
 
     def close(self):
+        self.client.session.cookies.clear()
         self.client.session.close()
+        del self.client
 
     def get_redirect_url(self, state):
         return self.client.auth_request_url(

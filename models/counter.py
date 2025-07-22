@@ -46,12 +46,16 @@ def upsert(data):
         if row == None:
             row = Counter.write(data)
             session.add(row)
+            session.flush()
+            out = row.to_dict()
             session.commit()
-            return row.to_dict()
+            return out
         else:
             row.update(data)
+            session.flush()
+            out = row.to_dict()
             session.commit()
-            return row.to_dict()
+            return out
   
 
 def touch(origin_type, origin_id, name, target_type = None, target_id = None):
@@ -81,8 +85,10 @@ def touch(origin_type, origin_id, name, target_type = None, target_id = None):
                 "secondary": 0
             })
             session.add(row)
+            session.flush()
+            out = row.to_dict()
             session.commit()
-            return row.to_dict()
+            return out
         else:
             return row.to_dict()
 

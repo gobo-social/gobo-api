@@ -21,12 +21,16 @@ def upsert(data):
         if row == None:
             row = Task.write(data)
             session.add(row)
+            session.flush()
+            out = row.to_dict()
             session.commit()
-            return row.to_dict()
+            return out
         else:
             row.update(data)
+            session.flush()
+            out = row.to_dict()
             session.commit()
-            return row.to_dict()
+            return out
         
 def receive(channel, limit):
     with Session() as session:

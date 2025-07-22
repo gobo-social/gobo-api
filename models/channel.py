@@ -29,8 +29,10 @@ def claim():
         data = row.to_dict()
         data["claimed"] = True
         row.update(data)
+        session.flush()
+        out = row.to_dict()
         session.commit()
-        return row.to_dict()
+        return out
     
 def release(id):
     with Session() as session:
@@ -45,5 +47,7 @@ def release(id):
         data = row.to_dict()
         data["claimed"] = False
         row.update(data)
+        session.flush()
+        out = row.to_dict()
         session.commit()
-        return row.to_dict()
+        return out
